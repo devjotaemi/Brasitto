@@ -11,16 +11,16 @@ const now = new Date('2026-05-20T12:00:00.000Z');
 
 const product = Product.create({
   id: 'product-1',
-  name: 'Torta de Frango',
-  description: 'Torta salgada de frango',
+  name: 'Espeto de Carne',
+  description: 'Espeto bovino na brasa',
   price: 50,
   active: true,
 });
 
 const inactiveProduct = Product.create({
   id: 'product-2',
-  name: 'Torta de Palmito',
-  description: 'Torta salgada de palmito',
+  name: 'Espeto de Frango',
+  description: 'Espeto de frango temperado',
   price: 50,
   active: false,
 });

@@ -16,6 +16,7 @@ type ProductRow = {
   description: string;
   price: number;
   active: boolean;
+  image_url?: string | null;
 };
 
 export class SupabaseProductRepository implements ProductRepository {
@@ -39,6 +40,7 @@ export class SupabaseProductRepository implements ProductRepository {
         description: row.description,
         price: row.price,
         active: row.active,
+        imageUrl: row.image_url ?? undefined,
       }),
     );
   }
@@ -54,6 +56,7 @@ export class SupabaseProductRepository implements ProductRepository {
       description: product.description,
       price: product.price,
       active: product.active,
+      image_url: product.imageUrl ?? null,
     });
 
     if (result.error) {

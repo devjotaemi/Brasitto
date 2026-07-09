@@ -3,10 +3,10 @@ import { Cart } from '../../src/domain/cart/Cart';
 import { Product } from '../../src/domain/product/Product';
 
 describe('Cart', () => {
-  it('deve adicionar uma torta ativa ao carrinho', () => {
+  it('deve adicionar um espeto ativa ao carrinho', () => {
     const product = Product.create({
-      name: 'Torta de Frango',
-      description: 'Torta salgada de frango com catupiry',
+      name: 'Espeto de Carne',
+      description: 'Espeto bovino assado na brasa',
       price: 40,
       active: true,
     });
@@ -26,8 +26,8 @@ describe('Cart', () => {
 
   it('deve calcular subtotal de um item corretamente', () => {
     const product = Product.create({
-      name: 'Torta de Frango',
-      description: 'Torta salgada de frango com catupiry',
+      name: 'Espeto de Carne',
+      description: 'Espeto bovino assado na brasa',
       price: 40,
       active: true,
     });
@@ -41,14 +41,14 @@ describe('Cart', () => {
 
   it('deve calcular subtotal de multiplos itens', () => {
     const chickenPie = Product.create({
-      name: 'Torta de Frango',
-      description: 'Torta salgada de frango',
+      name: 'Espeto de Carne',
+      description: 'Espeto bovino na brasa',
       price: 40,
       active: true,
     });
     const heartOfPalmPie = Product.create({
-      name: 'Torta de Palmito',
-      description: 'Torta salgada de palmito',
+      name: 'Espeto de Frango',
+      description: 'Espeto de frango temperado',
       price: 30,
       active: true,
     });
@@ -63,8 +63,8 @@ describe('Cart', () => {
 
   it('nao deve permitir item com quantidade menor ou igual a zero', () => {
     const product = Product.create({
-      name: 'Torta de Frango',
-      description: 'Torta salgada de frango com catupiry',
+      name: 'Espeto de Carne',
+      description: 'Espeto bovino assado na brasa',
       price: 40,
       active: true,
     });

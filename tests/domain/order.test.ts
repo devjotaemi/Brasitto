@@ -3,8 +3,8 @@ import { Order, OrderStatus, OrderType } from '../../src/domain/order/Order';
 import { Product } from '../../src/domain/product/Product';
 
 const product = Product.create({
-  name: 'Torta de Frango',
-  description: 'Torta salgada de frango com catupiry',
+  name: 'Espeto de Carne',
+  description: 'Espeto bovino assado na brasa',
   price: 50,
   active: true,
 });
@@ -37,7 +37,7 @@ describe('Order', () => {
       customerName: 'Maria Silva',
       customerPhone: '11999999999',
       type: OrderType.DELIVERY,
-      address: 'Rua das Tortas, 123',
+      address: 'Rua dos Espetos, 123',
       items: orderItems,
     });
 
@@ -51,7 +51,7 @@ describe('Order', () => {
       customerName: 'Maria Silva',
       customerPhone: '11999999999',
       type: OrderType.DELIVERY,
-      address: 'Rua das Tortas, 123',
+      address: 'Rua dos Espetos, 123',
       deliveryFee: 12,
       items: orderItems,
     });

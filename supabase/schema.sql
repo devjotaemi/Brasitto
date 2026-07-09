@@ -3,6 +3,7 @@ create table if not exists products (
   name text not null,
   description text not null,
   price numeric(10, 2) not null check (price > 0),
+  image_url text,
   active boolean not null default true,
   created_at timestamptz not null default now()
 );
@@ -102,6 +103,35 @@ add column if not exists estimated_ready_at timestamptz;
 
 alter table orders
 add column if not exists cancellation_reason text;
+
+alter table products
+add column if not exists image_url text;
+
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'products_image_url_max_length'
+      and conrelid = 'products'::regclass
+  ) then
+    alter table products
+    add constraint products_image_url_max_length
+    check (image_url is null or char_length(image_url) <= 1000) not valid;
+  end if;
+
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'products_image_url_http'
+      and conrelid = 'products'::regclass
+  ) then
+    alter table products
+    add constraint products_image_url_http
+    check (image_url is null or image_url ~ '^https?://') not valid;
+  end if;
+end;
+$$;
 
 alter table orders
 alter column order_number set default nextval('order_number_sequence');

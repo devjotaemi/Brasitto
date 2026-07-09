@@ -66,8 +66,8 @@ class FakeOrderRepository implements OrderRepository {
 }
 
 const product = Product.create({
-  name: 'Torta de Frango',
-  description: 'Torta salgada de frango com catupiry',
+  name: 'Espeto de Carne',
+  description: 'Espeto bovino assado na brasa',
   price: 50,
   active: true,
 });
@@ -107,7 +107,7 @@ describe('CreateOrderUseCase', () => {
       customerName: 'Maria Silva',
       customerPhone: '11999999999',
       type: OrderType.DELIVERY,
-      address: 'Rua das Tortas, 123',
+      address: 'Rua dos Espetos, 123',
       items,
     });
 

@@ -145,7 +145,7 @@ export const getCustomerUserFacingErrorMessage = (
   }
 
   if (errorMessage.includes('at least one item')) {
-    return 'Adicione pelo menos uma torta ao pedido.';
+    return 'Adicione pelo menos um espeto ao pedido.';
   }
 
   if (errorMessage.includes('Order number')) {
@@ -626,7 +626,7 @@ export function CustomerApp() {
               Delivery e retirada
             </p>
             <h1 className="text-3xl font-semibold tracking-normal text-zinc-950">
-              Quinta da Torta
+              Espetaria
             </h1>
           </div>
 
@@ -661,7 +661,7 @@ export function CustomerApp() {
                 Cardapio
               </h2>
             <p className="mt-1 text-sm text-zinc-600">
-              Tamanhos inteiros prontos para compartilhar.
+              Espetos preparados na brasa para pedir agora.
             </p>
             <p className="mt-2 text-xs font-medium text-zinc-500">
               Fonte: {repositoryMode === 'supabase' ? 'Supabase' : 'local'}
@@ -686,7 +686,7 @@ export function CustomerApp() {
             !productErrorMessage &&
             products.length === 0 ? (
               <div className="rounded border border-zinc-200 bg-white p-4 text-sm text-zinc-600 shadow-sm">
-                Nenhuma torta ativa disponivel.
+                Nenhum espeto ativo disponivel.
               </div>
             ) : null}
 
@@ -698,8 +698,23 @@ export function CustomerApp() {
               return (
                 <article
                   key={product.id}
-                  className="grid gap-4 rounded border border-zinc-200 bg-white p-4 shadow-sm sm:grid-cols-[1fr_auto]"
+                  className="grid gap-4 rounded border border-zinc-200 bg-white p-4 shadow-sm sm:grid-cols-[160px_1fr_auto]"
                 >
+                  <div className="aspect-[4/3] overflow-hidden rounded bg-zinc-100">
+                    {product.imageUrl ? (
+                      <img
+                        alt={product.name}
+                        className="h-full w-full object-cover"
+                        loading="lazy"
+                        src={product.imageUrl}
+                      />
+                    ) : (
+                      <div className="grid h-full place-items-center px-3 text-center text-xs font-medium text-zinc-500">
+                        Sem foto
+                      </div>
+                    )}
+                  </div>
+
                   <div>
                     <div className="flex flex-wrap items-center gap-2">
                       <h3 className="text-base font-semibold text-zinc-950">

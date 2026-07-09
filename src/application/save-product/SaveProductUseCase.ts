@@ -7,6 +7,7 @@ export type SaveProductInput = {
   description: string;
   price: number;
   active: boolean;
+  imageUrl?: string;
 };
 
 export class SaveProductUseCase {
@@ -19,6 +20,7 @@ export class SaveProductUseCase {
       description: input.description,
       price: input.price,
       active: input.active,
+      imageUrl: input.imageUrl,
     });
 
     await this.productRepository.save(product);

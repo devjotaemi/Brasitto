@@ -6,7 +6,7 @@ import {
 } from '../infrastructure/supabase/supabaseClient';
 
 const APPLICATION_LOCK_POLL_INTERVAL_MS = 60000;
-const APPLICATION_LOCK_STORAGE_KEY = 'quinta-da-torta:application-lock-updated';
+const APPLICATION_LOCK_STORAGE_KEY = 'espetaria:application-lock-updated';
 
 type ApplicationLockState = {
   isCheckingApplicationLock: boolean;

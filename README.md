@@ -1,6 +1,6 @@
-# Quinta da Torta
+# Espetaria
 
-Aplicativo para um restaurante especializado em tortas por delivery e retirada.
+Aplicativo para um restaurante especializado em espetos por delivery e retirada.
 
 ## Stack
 

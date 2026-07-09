@@ -5,8 +5,8 @@ import { Product } from '../../src/domain/product/Product';
 
 const product = Product.create({
   id: 'product-1',
-  name: 'Torta de Frango',
-  description: 'Torta salgada de frango',
+  name: 'Espeto de Carne',
+  description: 'Espeto bovino na brasa',
   price: 50,
   active: true,
 });

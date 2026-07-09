@@ -9,6 +9,7 @@ type ProductForm = {
   name: string;
   description: string;
   price: string;
+  imageUrl: string;
   active: boolean;
 };
 
@@ -16,6 +17,7 @@ const emptyForm: ProductForm = {
   name: '',
   description: '',
   price: '',
+  imageUrl: '',
   active: true,
 };
 
@@ -32,6 +34,7 @@ const toForm = (product: Product): ProductForm => ({
   name: product.name,
   description: product.description,
   price: String(product.price),
+  imageUrl: product.imageUrl ?? '',
   active: product.active,
 });
 
@@ -68,11 +71,19 @@ const getUserFacingErrorMessage = (
   }
 
   if (error.message.includes('Product name is required')) {
-    return 'Informe o nome da torta.';
+    return 'Informe o nome do espeto.';
   }
 
   if (error.message.includes('Product description is required')) {
-    return 'Informe a descricao da torta.';
+    return 'Informe a descricao do espeto.';
+  }
+
+  if (error.message.includes('Product image URL must start')) {
+    return 'Informe uma URL de foto iniciando com http:// ou https://.';
+  }
+
+  if (error.message.includes('Product image URL is too long')) {
+    return 'A URL da foto deve ter no maximo 1000 caracteres.';
   }
 
   return error.message;
@@ -130,6 +141,7 @@ export function AdminProductsPanel() {
         name,
         description,
         price,
+        imageUrl: form.imageUrl.trim() || undefined,
         active: form.active,
       });
 
@@ -156,7 +168,7 @@ export function AdminProductsPanel() {
         <div className="mb-4 flex items-center gap-2">
           <PackagePlus className="h-5 w-5 text-rose-700" />
           <h2 className="text-lg font-semibold text-zinc-950">
-            {form.id ? 'Editar torta' : 'Nova torta'}
+            {form.id ? 'Editar espeto' : 'Novo espeto'}
           </h2>
         </div>
 
@@ -193,6 +205,17 @@ export function AdminProductsPanel() {
               type="number"
               value={form.price}
               onChange={(event) => updateForm('price', event.target.value)}
+            />
+          </label>
+
+          <label className="grid gap-1 text-sm font-medium text-zinc-700">
+            URL da foto
+            <input
+              className="h-10 rounded border border-zinc-300 px-3 text-sm text-zinc-950 outline-none transition focus:border-rose-700"
+              placeholder="https://..."
+              type="url"
+              value={form.imageUrl}
+              onChange={(event) => updateForm('imageUrl', event.target.value)}
             />
           </label>
 
@@ -261,8 +284,23 @@ export function AdminProductsPanel() {
           {products.map((product) => (
             <article
               key={product.id}
-              className="grid gap-4 rounded border border-zinc-200 bg-white p-4 shadow-sm sm:grid-cols-[1fr_auto]"
+              className="grid gap-4 rounded border border-zinc-200 bg-white p-4 shadow-sm sm:grid-cols-[120px_1fr_auto]"
             >
+              <div className="aspect-[4/3] overflow-hidden rounded bg-zinc-100">
+                {product.imageUrl ? (
+                  <img
+                    alt={product.name}
+                    className="h-full w-full object-cover"
+                    loading="lazy"
+                    src={product.imageUrl}
+                  />
+                ) : (
+                  <div className="grid h-full place-items-center px-3 text-center text-xs font-medium text-zinc-500">
+                    Sem foto
+                  </div>
+                )}
+              </div>
+
               <div>
                 <div className="flex flex-wrap items-center gap-2">
                   <h3 className="text-base font-semibold text-zinc-950">

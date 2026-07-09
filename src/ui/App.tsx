@@ -54,7 +54,7 @@ export function App() {
       <nav className="border-b border-zinc-200 bg-zinc-950">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
           <span className="text-sm font-semibold text-white">
-            Quinta da Torta
+            Espetaria
           </span>
           {view === 'admin' ? (
             <div className="flex items-center gap-2">

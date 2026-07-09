@@ -35,15 +35,16 @@ describe('SupabaseProductRepository', () => {
     const client = new FakeSupabaseClient([
       {
         id: 'product-1',
-        name: 'Torta de Frango',
-        description: 'Torta salgada de frango com catupiry',
+        name: 'Espeto de Carne',
+        description: 'Espeto bovino assado na brasa',
         price: 40,
         active: true,
+        image_url: 'https://example.com/espeto-carne.jpg',
       },
       {
         id: 'product-2',
-        name: 'Torta de Palmito',
-        description: 'Torta salgada de palmito',
+        name: 'Espeto de Frango',
+        description: 'Espeto de frango temperado',
         price: 35,
         active: false,
       },
@@ -54,9 +55,10 @@ describe('SupabaseProductRepository', () => {
 
     expect(products).toHaveLength(2);
     expect(products[0].id).toBe('product-1');
-    expect(products[0].name).toBe('Torta de Frango');
+    expect(products[0].name).toBe('Espeto de Carne');
     expect(products[0].price).toBe(40);
     expect(products[0].active).toBe(true);
+    expect(products[0].imageUrl).toBe('https://example.com/espeto-carne.jpg');
     expect(products[1].active).toBe(false);
   });
 
@@ -78,10 +80,11 @@ describe('SupabaseProductRepository', () => {
     const repository = new SupabaseProductRepository(client);
     const product = Product.create({
       id: 'product-1',
-      name: 'Torta de Frango',
-      description: 'Torta salgada de frango com catupiry',
+      name: 'Espeto de Carne',
+      description: 'Espeto bovino assado na brasa',
       price: 40,
       active: true,
+      imageUrl: 'https://example.com/espeto-carne.jpg',
     });
 
     await repository.save(product);
@@ -89,10 +92,11 @@ describe('SupabaseProductRepository', () => {
     expect(client.savedProducts).toEqual([
       {
         id: 'product-1',
-        name: 'Torta de Frango',
-        description: 'Torta salgada de frango com catupiry',
+        name: 'Espeto de Carne',
+        description: 'Espeto bovino assado na brasa',
         price: 40,
         active: true,
+        image_url: 'https://example.com/espeto-carne.jpg',
       },
     ]);
   });

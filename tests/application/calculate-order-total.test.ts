@@ -5,15 +5,15 @@ import { OrderType } from '../../src/domain/order/Order';
 import { Product } from '../../src/domain/product/Product';
 
 const chickenPie = Product.create({
-  name: 'Torta de Frango',
-  description: 'Torta salgada de frango',
+  name: 'Espeto de Carne',
+  description: 'Espeto bovino na brasa',
   price: 40,
   active: true,
 });
 
 const heartOfPalmPie = Product.create({
-  name: 'Torta de Palmito',
-  description: 'Torta salgada de palmito',
+  name: 'Espeto de Frango',
+  description: 'Espeto de frango temperado',
   price: 30,
   active: true,
 });
@@ -54,7 +54,7 @@ describe('CalculateOrderTotalUseCase', () => {
 
     const total = useCase.execute({
       type: OrderType.DELIVERY,
-      address: 'Rua das Tortas, 123',
+      address: 'Rua dos Espetos, 123',
       items,
     });
 
@@ -70,7 +70,7 @@ describe('CalculateOrderTotalUseCase', () => {
 
     const total = useCase.execute({
       type: OrderType.DELIVERY,
-      address: 'Rua das Tortas, 123',
+      address: 'Rua dos Espetos, 123',
       items,
       deliveryFee: 12,
     });

@@ -229,25 +229,31 @@ const normalizePhone = (value: string): string => value.replace(/\D/g, '');
 
 const localProducts = [
   Product.create({
-    id: 'chicken-pie',
-    name: 'Torta de Frango',
-    description: 'Frango desfiado, catupiry e massa dourada.',
-    price: 40,
+    id: 'beef-skewer',
+    name: 'Espeto de Carne',
+    description: 'Espeto bovino temperado e assado na brasa.',
+    price: 12,
     active: true,
+    imageUrl:
+      'https://images.unsplash.com/photo-1529692236671-f1f6cf9683ba?auto=format&fit=crop&w=900&q=80',
   }),
   Product.create({
-    id: 'heart-of-palm-pie',
-    name: 'Torta de Palmito',
-    description: 'Palmito cremoso, ervas frescas e cobertura crocante.',
-    price: 35,
+    id: 'chicken-skewer',
+    name: 'Espeto de Frango',
+    description: 'Espeto de frango temperado e assado na brasa.',
+    price: 10,
     active: true,
+    imageUrl:
+      'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=900&q=80',
   }),
   Product.create({
-    id: 'chocolate-pie',
-    name: 'Torta de Chocolate',
-    description: 'Chocolate meio amargo, ganache e base amanteigada.',
-    price: 45,
+    id: 'cheese-skewer',
+    name: 'Espeto de Queijo Coalho',
+    description: 'Queijo coalho grelhado na brasa.',
+    price: 9,
     active: true,
+    imageUrl:
+      'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=900&q=80',
   }),
 ];
 

@@ -68,8 +68,8 @@ class FakeOrderRepository implements OrderRepository {
 }
 
 const product = Product.create({
-  name: 'Torta de Frango',
-  description: 'Torta salgada de frango com catupiry',
+  name: 'Espeto de Carne',
+  description: 'Espeto bovino assado na brasa',
   price: 50,
   active: true,
 });

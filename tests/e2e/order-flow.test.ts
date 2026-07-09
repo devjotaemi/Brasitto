@@ -93,8 +93,8 @@ class FlowOrderRepository implements OrderRepository {
 
 const product = Product.create({
   id: 'product-1',
-  name: 'Torta de Frango',
-  description: 'Torta salgada de frango com catupiry',
+  name: 'Espeto de Carne',
+  description: 'Espeto bovino assado na brasa',
   price: 50,
   active: true,
 });
@@ -125,7 +125,7 @@ describe('Order flow', () => {
       customerName: 'Maria Silva',
       customerPhone: '(11)99999-9999',
       type: OrderType.DELIVERY,
-      address: 'Rua das Tortas, 123',
+      address: 'Rua dos Espetos, 123',
       customerNote: 'Entregar na portaria',
       deliveryFee: 12,
       items,

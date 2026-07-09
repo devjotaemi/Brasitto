@@ -40,7 +40,7 @@ export const buildOrderWhatsAppMessage = (order: Order): string => {
 
   if (order.status === OrderStatus.CANCELED) {
     return [
-      `Ola, ${order.customerName}. Seu pedido ${orderNumber} na Quinta da Torta foi cancelado.`,
+      `Ola, ${order.customerName}. Seu pedido ${orderNumber} na Espetaria foi cancelado.`,
       '',
       order.cancellationReason
         ? `Motivo: ${order.cancellationReason}`
@@ -49,7 +49,7 @@ export const buildOrderWhatsAppMessage = (order: Order): string => {
   }
 
   const lines = [
-    `Ola, ${order.customerName}! Seu pedido ${orderNumber} na Quinta da Torta esta com o status: ${orderStatusLabel[order.status]}.`,
+    `Ola, ${order.customerName}! Seu pedido ${orderNumber} na Espetaria esta com o status: ${orderStatusLabel[order.status]}.`,
     '',
   ];
 

@@ -17,15 +17,15 @@ describe('ListProductsUseCase', () => {
   it('deve listar produtos ativos e inativos para o admin', async () => {
     const activeProduct = Product.create({
       id: 'product-1',
-      name: 'Torta de Frango',
-      description: 'Torta salgada de frango com catupiry',
+      name: 'Espeto de Carne',
+      description: 'Espeto bovino assado na brasa',
       price: 40,
       active: true,
     });
     const inactiveProduct = Product.create({
       id: 'product-2',
-      name: 'Torta de Palmito',
-      description: 'Torta salgada de palmito',
+      name: 'Espeto de Frango',
+      description: 'Espeto de frango temperado',
       price: 35,
       active: false,
     });

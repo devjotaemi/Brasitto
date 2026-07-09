@@ -9,8 +9,8 @@ import {
 
 const product = Product.create({
   id: 'product-1',
-  name: 'Torta de Frango',
-  description: 'Torta salgada de frango',
+  name: 'Espeto de Carne',
+  description: 'Espeto bovino na brasa',
   price: 50,
   active: true,
 });
@@ -22,7 +22,7 @@ const createOrder = () =>
     customerName: 'Maria Silva',
     customerPhone: '(11)99999-9999',
     type: OrderType.DELIVERY,
-    address: 'Rua das Tortas, 123',
+    address: 'Rua dos Espetos, 123',
     deliveryFee: 12,
     estimatedReadyAt: new Date('2026-05-20T11:30:00.000Z'),
     items: [
@@ -45,12 +45,12 @@ describe('orderWhatsapp', () => {
     const order = createOrder().updateStatus(OrderStatus.IN_PREPARATION);
 
     expect(buildOrderWhatsAppMessage(order)).toContain(
-      'Seu pedido #000123 na Quinta da Torta esta com o status: Em preparo.',
+      'Seu pedido #000123 na Espetaria esta com o status: Em preparo.',
     );
     expect(buildOrderWhatsAppMessage(order)).toContain('Previsao:');
     expect(buildOrderWhatsAppMessage(order)).toContain('Total: R$');
     expect(buildOrderWhatsAppMessage(order)).toContain(
-      'Endereco: Rua das Tortas, 123',
+      'Endereco: Rua dos Espetos, 123',
     );
   });
 
@@ -63,7 +63,7 @@ describe('orderWhatsapp', () => {
 
     expect(buildOrderWhatsAppMessage(order)).toBe(
       [
-        'Ola, Maria Silva. Seu pedido #000123 na Quinta da Torta foi cancelado.',
+        'Ola, Maria Silva. Seu pedido #000123 na Espetaria foi cancelado.',
         '',
         'Motivo: Produto indisponivel',
       ].join('\n'),

@@ -1,8 +1,8 @@
-# Quinta da Torta
+# Espetaria
 
 ## Descricao
 
-Quinta da Torta e um aplicativo para um restaurante especializado em tortas, com foco em pedidos para delivery e retirada.
+Espetaria e um aplicativo para um restaurante especializado em espetos, com foco em pedidos para delivery e retirada.
 
 O sistema tera duas interfaces principais no futuro:
 
@@ -13,19 +13,19 @@ Nesta primeira etapa, o projeto deve conter apenas regras do projeto e testes un
 
 ## Objetivo do aplicativo
 
-Permitir que clientes montem pedidos de tortas com clareza de subtotal, taxa de entrega e total final, e permitir que o estabelecimento gerencie esses pedidos de forma simples.
+Permitir que clientes montem pedidos de espetos com clareza de subtotal, taxa de entrega e total final, e permitir que o estabelecimento gerencie esses pedidos de forma simples.
 
 ## Regras de negocio
 
 ### Produtos
 
-- Cada torta deve ter nome, descricao, preco e status ativo/inativo.
+- Cada espeto deve ter nome, descricao, preco e status ativo/inativo.
 - Apenas produtos ativos podem ser adicionados ao pedido.
 - O preco deve ser sempre maior que zero.
 
 ### Carrinho
 
-- Cliente pode adicionar uma ou mais tortas ao carrinho.
+- Cliente pode adicionar um ou mais espetos ao carrinho.
 - Cada item possui produto, quantidade e preco unitario.
 - A quantidade deve ser maior que zero.
 - O subtotal e a soma de preco unitario vezes quantidade.

@@ -66,7 +66,7 @@ class FakeSupabaseClient {
       (item) => ({
         order_id: params.p_id,
         product_id: item.product_id,
-        product_name: 'Torta de Frango',
+        product_name: 'Espeto de Carne',
         quantity: item.quantity,
         unit_price: 50,
         total_price: 100,
@@ -206,8 +206,8 @@ class FakeSupabaseClient {
 
 const product = Product.create({
   id: 'product-1',
-  name: 'Torta de Frango',
-  description: 'Torta salgada de frango com catupiry',
+  name: 'Espeto de Carne',
+  description: 'Espeto bovino assado na brasa',
   price: 50,
   active: true,
 });
@@ -230,7 +230,7 @@ describe('SupabaseOrderRepository', () => {
       customerName: 'Maria Silva',
       customerPhone: '11999999999',
       type: OrderType.DELIVERY,
-      address: 'Rua das Tortas, 123',
+      address: 'Rua dos Espetos, 123',
       items,
     });
 
@@ -242,7 +242,7 @@ describe('SupabaseOrderRepository', () => {
         customer_name: 'Maria Silva',
         customer_phone: '11999999999',
         order_type: 'DELIVERY',
-        address: 'Rua das Tortas, 123',
+        address: 'Rua dos Espetos, 123',
         customer_note: null,
       },
     ]);
@@ -253,7 +253,7 @@ describe('SupabaseOrderRepository', () => {
         p_customer_name: 'Maria Silva',
         p_customer_phone: '11999999999',
         p_order_type: 'DELIVERY',
-        p_address: 'Rua das Tortas, 123',
+        p_address: 'Rua dos Espetos, 123',
         p_customer_note: null,
         p_items: [
           {
@@ -271,7 +271,7 @@ describe('SupabaseOrderRepository', () => {
       {
         order_id: 'order-1',
         product_id: 'product-1',
-        product_name: 'Torta de Frango',
+        product_name: 'Espeto de Carne',
         quantity: 2,
         unit_price: 50,
         total_price: 100,
@@ -305,7 +305,7 @@ describe('SupabaseOrderRepository', () => {
       customer_name: 'Maria Silva',
       customer_phone: '11999999999',
       order_type: 'DELIVERY',
-      address: 'Rua das Tortas, 123',
+      address: 'Rua dos Espetos, 123',
       status: 'ACCEPTED',
       created_at: '2026-05-20T10:30:00.000Z',
       finished_at: '2026-05-20T12:00:00.000Z',
@@ -318,7 +318,7 @@ describe('SupabaseOrderRepository', () => {
     client.orderItemRows = [
       {
         order_id: 'order-1',
-        product_name: 'Torta de Frango',
+        product_name: 'Espeto de Carne',
         quantity: 2,
         unit_price: 50,
         total_price: 100,
@@ -340,7 +340,7 @@ describe('SupabaseOrderRepository', () => {
     );
     expect(order?.deliveryFee).toBe(12);
     expect(order?.total).toBe(112);
-    expect(order?.items[0].product.name).toBe('Torta de Frango');
+    expect(order?.items[0].product.name).toBe('Espeto de Carne');
   });
 
   it('deve listar pedidos e seus itens', async () => {
@@ -351,7 +351,7 @@ describe('SupabaseOrderRepository', () => {
         customer_name: 'Maria Silva',
         customer_phone: '11999999999',
         order_type: 'DELIVERY',
-        address: 'Rua das Tortas, 123',
+        address: 'Rua dos Espetos, 123',
         status: 'PENDING',
         created_at: '2026-05-20T10:30:00.000Z',
         finished_at: '2026-05-20T12:00:00.000Z',
@@ -380,14 +380,14 @@ describe('SupabaseOrderRepository', () => {
     client.orderItemRows = [
       {
         order_id: 'order-1',
-        product_name: 'Torta de Frango',
+        product_name: 'Espeto de Carne',
         quantity: 2,
         unit_price: 50,
         total_price: 100,
       },
       {
         order_id: 'order-2',
-        product_name: 'Torta de Palmito',
+        product_name: 'Espeto de Frango',
         quantity: 1,
         unit_price: 35,
         total_price: 35,
@@ -409,7 +409,7 @@ describe('SupabaseOrderRepository', () => {
     expect(orders[0].items).toHaveLength(1);
     expect(orders[0].total).toBe(108);
     expect(orders[1].id).toBe('order-2');
-    expect(orders[1].items[0].product.name).toBe('Torta de Palmito');
+    expect(orders[1].items[0].product.name).toBe('Espeto de Frango');
     expect(orders[1].total).toBe(35);
   });
 
@@ -421,7 +421,7 @@ describe('SupabaseOrderRepository', () => {
         customer_name: 'Maria Silva',
         customer_phone: '11999999999',
         order_type: 'DELIVERY',
-        address: 'Rua das Tortas, 123',
+        address: 'Rua dos Espetos, 123',
         status: 'FINISHED',
         created_at: '2026-05-20T10:30:00.000Z',
         finished_at: '2026-05-20T12:00:00.000Z',
@@ -465,21 +465,21 @@ describe('SupabaseOrderRepository', () => {
     client.orderItemRows = [
       {
         order_id: 'order-1',
-        product_name: 'Torta de Frango',
+        product_name: 'Espeto de Carne',
         quantity: 2,
         unit_price: 50,
         total_price: 100,
       },
       {
         order_id: 'order-2',
-        product_name: 'Torta de Palmito',
+        product_name: 'Espeto de Frango',
         quantity: 1,
         unit_price: 35,
         total_price: 35,
       },
       {
         order_id: 'order-3',
-        product_name: 'Torta de Limao',
+        product_name: 'Espeto de Linguica',
         quantity: 1,
         unit_price: 40,
         total_price: 40,
@@ -496,7 +496,7 @@ describe('SupabaseOrderRepository', () => {
     expect(orders).toHaveLength(1);
     expect(orders[0].id).toBe('order-2');
     expect(orders[0].items).toHaveLength(1);
-    expect(orders[0].items[0].product.name).toBe('Torta de Palmito');
+    expect(orders[0].items[0].product.name).toBe('Espeto de Frango');
   });
 
   it('deve atualizar apenas o status do pedido', async () => {
@@ -589,7 +589,7 @@ describe('SupabaseOrderRepository', () => {
         customer_name: 'Maria Silva',
         customer_phone: '(11)99999-9999',
         order_type: 'DELIVERY',
-        address: 'Rua das Tortas, 123',
+        address: 'Rua dos Espetos, 123',
         status: 'OUT_FOR_DELIVERY',
         created_at: '2026-05-20T10:30:00.000Z',
         finished_at: null,
@@ -598,7 +598,7 @@ describe('SupabaseOrderRepository', () => {
         delivery_fee: 8,
         cancellation_reason: 'Cliente desistiu',
         order_number: 123,
-        product_name: 'Torta de Frango',
+        product_name: 'Espeto de Carne',
         quantity: 2,
         unit_price: 50,
         total_price: 100,
@@ -608,7 +608,7 @@ describe('SupabaseOrderRepository', () => {
         customer_name: 'Maria Silva',
         customer_phone: '(11)99999-9999',
         order_type: 'DELIVERY',
-        address: 'Rua das Tortas, 123',
+        address: 'Rua dos Espetos, 123',
         status: 'OUT_FOR_DELIVERY',
         created_at: '2026-05-20T10:30:00.000Z',
         finished_at: null,
@@ -617,7 +617,7 @@ describe('SupabaseOrderRepository', () => {
         delivery_fee: 8,
         cancellation_reason: 'Cliente desistiu',
         order_number: 123,
-        product_name: 'Torta de Palmito',
+        product_name: 'Espeto de Frango',
         quantity: 1,
         unit_price: 35,
         total_price: 35,
@@ -675,7 +675,7 @@ describe('SupabaseOrderRepository', () => {
         delivery_fee: 0,
         cancellation_reason: null,
         order_number: 123,
-        product_name: 'Torta de Frango',
+        product_name: 'Espeto de Carne',
         quantity: 2,
         unit_price: 50,
         total_price: 100,

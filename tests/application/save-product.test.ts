@@ -22,13 +22,15 @@ describe('SaveProductUseCase', () => {
 
     const product = await useCase.execute({
       id: 'product-1',
-      name: 'Torta de Frango',
-      description: 'Torta salgada de frango com catupiry',
+      name: 'Espeto de Carne',
+      description: 'Espeto bovino assado na brasa',
       price: 40,
       active: true,
+      imageUrl: 'https://example.com/espeto.jpg',
     });
 
-    expect(product.name).toBe('Torta de Frango');
+    expect(product.name).toBe('Espeto de Carne');
+    expect(product.imageUrl).toBe('https://example.com/espeto.jpg');
     expect(repository.products).toEqual([product]);
   });
 
@@ -38,7 +40,7 @@ describe('SaveProductUseCase', () => {
 
     await expect(
       useCase.execute({
-        name: 'Torta invalida',
+        name: 'Espeto invalido',
         description: 'Preco invalido',
         price: 0,
         active: true,

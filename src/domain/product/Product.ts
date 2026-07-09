@@ -4,6 +4,7 @@ export type ProductProps = {
   description: string;
   price: number;
   active: boolean;
+  imageUrl?: string;
 };
 
 export class Product {
@@ -13,6 +14,7 @@ export class Product {
     public readonly description: string,
     public readonly price: number,
     public readonly active: boolean,
+    public readonly imageUrl: string | undefined,
   ) {}
 
   static create(props: ProductProps): Product {
@@ -32,12 +34,23 @@ export class Product {
       throw new Error('Product price must be greater than zero');
     }
 
+    const imageUrl = props.imageUrl?.trim() || undefined;
+
+    if (imageUrl && !/^https?:\/\//.test(imageUrl)) {
+      throw new Error('Product image URL must start with http:// or https://');
+    }
+
+    if (imageUrl && imageUrl.length > 1000) {
+      throw new Error('Product image URL is too long');
+    }
+
     return new Product(
       props.id,
       props.name,
       props.description,
       props.price,
       props.active,
+      imageUrl,
     );
   }
 }
