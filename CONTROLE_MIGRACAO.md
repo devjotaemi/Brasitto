@@ -89,6 +89,33 @@ Verificacao executada:
 - `npm.cmd run build`: passou; Vite gerou `dist/`.
 - O build manteve avisos conhecidos do `lucide-react` sobre diretivas `"use client"` ignoradas pelo bundler.
 
+### 2026-07-08 - Upload de fotos dos produtos
+
+Plano detalhado antes da implementacao:
+
+1. Manter `products.image_url` como fonte da imagem exibida no cliente.
+2. Trocar a edicao manual de URL no admin por upload de arquivo.
+3. Usar Supabase Storage para armazenar as imagens em bucket publico.
+4. Gerar URL publica apos upload e salvar essa URL no produto.
+5. Criar SQL para bucket e policies de Storage.
+6. Preservar produtos que ja possuem URL de foto.
+7. Rodar testes e build ao final.
+
+Alteracoes realizadas:
+
+- Admin de produtos agora aceita arquivo de imagem em vez de URL manual.
+- Upload usa o bucket `product-images` do Supabase Storage.
+- Ao salvar produto, a foto selecionada e enviada ao Storage e a URL publica e gravada em `products.image_url`.
+- O formulario exibe preview da foto atual ou da nova foto selecionada.
+- Criado `supabase/product-image-storage.sql` para configurar bucket e policies.
+
+Verificacao executada:
+
+- `npm.cmd run test`: passou com 27 arquivos de teste e 112 testes.
+- `npm.cmd run build`: passou; Vite gerou `dist/`.
+- O build manteve avisos conhecidos do `lucide-react` sobre diretivas `"use client"` ignoradas pelo bundler.
+- O build tambem avisou que um chunk passou de 500 kB apos minificacao; nao bloqueia o deploy.
+
 ### 2026-07-08 - Fotos dos produtos
 
 Plano detalhado antes da implementacao:

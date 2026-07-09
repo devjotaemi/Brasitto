@@ -1,7 +1,11 @@
 import { Edit3, PackagePlus, RefreshCw, Save } from 'lucide-react';
-import type { FormEvent } from 'react';
+import type { ChangeEvent, FormEvent } from 'react';
 import { useEffect, useState } from 'react';
 import type { Product } from '../../domain/product/Product';
+import {
+  isSupabaseConfigured,
+  supabaseClient,
+} from '../../infrastructure/supabase/supabaseClient';
 import { createCustomerDependencies } from '../customer/customerDependencies';
 
 type ProductForm = {
@@ -22,6 +26,8 @@ const emptyForm: ProductForm = {
 };
 
 const { listProductsUseCase, saveProductUseCase } = createCustomerDependencies();
+const PRODUCT_IMAGE_BUCKET = 'product-images';
+const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
 
 const formatCurrency = (value: number) =>
   new Intl.NumberFormat('pt-BR', {
@@ -40,6 +46,16 @@ const toForm = (product: Product): ProductForm => ({
 
 const parseProductPrice = (value: string): number =>
   Number(value.replace(',', '.'));
+
+const getImageExtension = (fileName: string): string => {
+  const extension = fileName.split('.').pop()?.toLowerCase();
+
+  if (!extension || extension === fileName.toLowerCase()) {
+    return 'jpg';
+  }
+
+  return extension;
+};
 
 const getUserFacingErrorMessage = (
   error: unknown,
@@ -60,6 +76,22 @@ const getUserFacingErrorMessage = (
 
   if (error.message.includes('Failed to fetch')) {
     return 'Nao foi possivel conectar ao Supabase. Verifique sua conexao e tente novamente.';
+  }
+
+  if (error.message.includes('Image upload requires Supabase')) {
+    return 'Upload de foto exige Supabase configurado.';
+  }
+
+  if (error.message.includes('Product image must be an image file')) {
+    return 'Selecione um arquivo de imagem valido.';
+  }
+
+  if (error.message.includes('Product image is too large')) {
+    return 'A foto deve ter no maximo 5 MB.';
+  }
+
+  if (error.message.includes('Bucket not found')) {
+    return 'Bucket de fotos nao encontrado. Rode o SQL de configuracao do Storage no Supabase.';
   }
 
   if (error.message.includes('greater than zero')) {
@@ -92,6 +124,9 @@ const getUserFacingErrorMessage = (
 export function AdminProductsPanel() {
   const [products, setProducts] = useState<Product[]>([]);
   const [form, setForm] = useState<ProductForm>(emptyForm);
+  const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
+  const [imagePreviewUrl, setImagePreviewUrl] = useState('');
+  const [imageInputKey, setImageInputKey] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -118,12 +153,78 @@ export function AdminProductsPanel() {
     loadProducts();
   }, []);
 
+  useEffect(() => {
+    return () => {
+      if (imagePreviewUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(imagePreviewUrl);
+      }
+    };
+  }, [imagePreviewUrl]);
+
   function updateForm(field: keyof ProductForm, value: string | boolean) {
     setErrorMessage('');
     setForm((currentForm) => ({
       ...currentForm,
       [field]: value,
     }));
+  }
+
+  function resetForm() {
+    setForm(emptyForm);
+    setSelectedImageFile(null);
+    setImagePreviewUrl('');
+    setImageInputKey((currentKey) => currentKey + 1);
+  }
+
+  function editProduct(product: Product) {
+    setForm(toForm(product));
+    setSelectedImageFile(null);
+    setImagePreviewUrl('');
+    setImageInputKey((currentKey) => currentKey + 1);
+  }
+
+  function updateImageFile(event: ChangeEvent<HTMLInputElement>) {
+    setErrorMessage('');
+
+    const file = event.target.files?.[0] ?? null;
+
+    setSelectedImageFile(file);
+
+    if (!file) {
+      setImagePreviewUrl('');
+      return;
+    }
+
+    setImagePreviewUrl(URL.createObjectURL(file));
+  }
+
+  async function uploadProductImage(productId: string, file: File) {
+    if (!isSupabaseConfigured || supabaseClient === null) {
+      throw new Error('Image upload requires Supabase');
+    }
+
+    if (!file.type.startsWith('image/')) {
+      throw new Error('Product image must be an image file');
+    }
+
+    if (file.size > MAX_IMAGE_SIZE_BYTES) {
+      throw new Error('Product image is too large');
+    }
+
+    const extension = getImageExtension(file.name);
+    const imagePath = `products/${productId}-${Date.now()}.${extension}`;
+    const storage = supabaseClient.storage.from(PRODUCT_IMAGE_BUCKET);
+    const uploadResult = await storage.upload(imagePath, file, {
+      cacheControl: '31536000',
+      contentType: file.type,
+      upsert: true,
+    });
+
+    if (uploadResult.error) {
+      throw uploadResult.error;
+    }
+
+    return storage.getPublicUrl(imagePath).data.publicUrl;
   }
 
   async function submitProduct(event: FormEvent<HTMLFormElement>) {
@@ -135,17 +236,21 @@ export function AdminProductsPanel() {
       const name = form.name.trim();
       const description = form.description.trim();
       const price = parseProductPrice(form.price);
+      const productId = form.id ?? crypto.randomUUID();
+      const imageUrl = selectedImageFile
+        ? await uploadProductImage(productId, selectedImageFile)
+        : form.imageUrl.trim() || undefined;
 
       await saveProductUseCase.execute({
-        id: form.id ?? crypto.randomUUID(),
+        id: productId,
         name,
         description,
         price,
-        imageUrl: form.imageUrl.trim() || undefined,
+        imageUrl,
         active: form.active,
       });
 
-      setForm(emptyForm);
+      resetForm();
       await loadProducts();
     } catch (error) {
       setErrorMessage(
@@ -209,15 +314,25 @@ export function AdminProductsPanel() {
           </label>
 
           <label className="grid gap-1 text-sm font-medium text-zinc-700">
-            URL da foto
+            Foto do espeto
             <input
-              className="h-10 rounded border border-zinc-300 px-3 text-sm text-zinc-950 outline-none transition focus:border-rose-700"
-              placeholder="https://..."
-              type="url"
-              value={form.imageUrl}
-              onChange={(event) => updateForm('imageUrl', event.target.value)}
+              accept="image/*"
+              className="rounded border border-zinc-300 px-3 py-2 text-sm text-zinc-950 file:mr-3 file:rounded file:border-0 file:bg-zinc-100 file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-zinc-800"
+              key={imageInputKey}
+              type="file"
+              onChange={updateImageFile}
             />
           </label>
+
+          {imagePreviewUrl || form.imageUrl ? (
+            <div className="overflow-hidden rounded border border-zinc-200 bg-zinc-50">
+              <img
+                alt="Previa da foto do espeto"
+                className="aspect-[4/3] w-full object-cover"
+                src={imagePreviewUrl || form.imageUrl}
+              />
+            </div>
+          ) : null}
 
           <label className="flex items-center gap-2 text-sm font-medium text-zinc-700">
             <input
@@ -248,7 +363,7 @@ export function AdminProductsPanel() {
           <button
             className="h-11 rounded border border-zinc-300 bg-white text-sm font-semibold text-zinc-800 transition hover:border-zinc-400"
             type="button"
-            onClick={() => setForm(emptyForm)}
+            onClick={resetForm}
           >
             Limpar
           </button>
@@ -327,7 +442,7 @@ export function AdminProductsPanel() {
               <button
                 className="flex h-10 items-center justify-center gap-2 rounded border border-zinc-300 bg-white px-3 text-sm font-semibold text-zinc-800 transition hover:border-zinc-400"
                 type="button"
-                onClick={() => setForm(toForm(product))}
+                onClick={() => editProduct(product)}
               >
                 <Edit3 className="h-4 w-4" />
                 Editar
