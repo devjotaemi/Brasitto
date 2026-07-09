@@ -19,7 +19,9 @@ export type ComandaItem = {
 export type ComandaProps = {
   id?: string;
   comandaNumber?: number;
-  label: string;
+  label?: string;
+  tableNumber?: number;
+  customerName?: string;
   items?: ComandaItem[];
   status?: ComandaStatus;
   openedAt?: Date;
@@ -32,6 +34,8 @@ export class Comanda {
     public readonly id: string | undefined,
     public readonly comandaNumber: number | undefined,
     public readonly label: string,
+    public readonly tableNumber: number | undefined,
+    public readonly customerName: string | undefined,
     public readonly items: ComandaItem[],
     public readonly status: ComandaStatus,
     public readonly total: number,
@@ -41,7 +45,27 @@ export class Comanda {
   ) {}
 
   static create(props: ComandaProps): Comanda {
-    const label = props.label.trim();
+    const customerName = props.customerName?.trim() || undefined;
+
+    if (props.tableNumber !== undefined) {
+      if (
+        !Number.isInteger(props.tableNumber) ||
+        props.tableNumber < 1 ||
+        props.tableNumber > 50
+      ) {
+        throw new Error('Comanda table number must be between 1 and 50');
+      }
+
+      if (!customerName) {
+        throw new Error('Comanda customer name is required');
+      }
+    }
+
+    const label =
+      props.label?.trim() ||
+      (props.tableNumber !== undefined && customerName
+        ? `Mesa ${props.tableNumber} - ${customerName}`
+        : '');
 
     if (label === '') {
       throw new Error('Comanda label is required');
@@ -59,6 +83,8 @@ export class Comanda {
       props.id,
       props.comandaNumber,
       label,
+      props.tableNumber,
+      customerName,
       [...items],
       props.status ?? ComandaStatus.OPEN,
       Comanda.calculateTotal(items),
@@ -94,6 +120,8 @@ export class Comanda {
       id: this.id,
       comandaNumber: this.comandaNumber,
       label: this.label,
+      tableNumber: this.tableNumber,
+      customerName: this.customerName,
       items: [...this.items, item],
       status: this.status,
       openedAt: this.openedAt,
@@ -117,6 +145,8 @@ export class Comanda {
       id: this.id,
       comandaNumber: this.comandaNumber,
       label: this.label,
+      tableNumber: this.tableNumber,
+      customerName: this.customerName,
       items: this.items.map((item) =>
         item.id === itemId ? { ...item, canceledAt } : item,
       ),
@@ -136,6 +166,8 @@ export class Comanda {
       id: this.id,
       comandaNumber: this.comandaNumber,
       label: this.label,
+      tableNumber: this.tableNumber,
+      customerName: this.customerName,
       items: this.items,
       status: ComandaStatus.CLOSED,
       openedAt: this.openedAt,

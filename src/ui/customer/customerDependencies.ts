@@ -36,7 +36,7 @@ import { SetApplicationLockStatusUseCase } from '../../application/set-applicati
 import { SetStoreSettingsUseCase } from '../../application/set-store-settings/SetStoreSettingsUseCase';
 import { UpdateOrderEstimateUseCase } from '../../application/update-order-estimate/UpdateOrderEstimateUseCase';
 import { UpdateOrderStatusUseCase } from '../../application/update-order-status/UpdateOrderStatusUseCase';
-import { Comanda } from '../../domain/comanda/Comanda';
+import { Comanda, ComandaStatus } from '../../domain/comanda/Comanda';
 import { OrderStatus, type Order } from '../../domain/order/Order';
 import { Product } from '../../domain/product/Product';
 import { SupabaseApplicationLockRepository } from '../../infrastructure/repositories/SupabaseApplicationLockRepository';
@@ -194,6 +194,19 @@ class LocalComandaRepository implements ComandaRepository {
   async save(comanda: Comanda): Promise<Comanda> {
     if (!comanda.id) {
       throw new Error('Comanda must have an id to be saved');
+    }
+
+    if (
+      comanda.status === ComandaStatus.OPEN &&
+      comanda.tableNumber !== undefined &&
+      [...this.commandas.values()].some(
+        (currentComanda) =>
+          currentComanda.id !== comanda.id &&
+          currentComanda.status === ComandaStatus.OPEN &&
+          currentComanda.tableNumber === comanda.tableNumber,
+      )
+    ) {
+      throw new Error('Table already has an open comanda');
     }
 
     this.commandas.set(comanda.id, comanda);

@@ -22,6 +22,8 @@ type ComandaRow = {
   id: string;
   comanda_number?: number | null;
   label: string;
+  table_number?: number | null;
+  customer_name?: string | null;
   status: ComandaStatus;
   opened_at?: string | null;
   closed_at?: string | null;
@@ -60,6 +62,8 @@ export class SupabaseComandaRepository implements ComandaRepository {
       .insert({
         id: comanda.id,
         label: comanda.label,
+        table_number: comanda.tableNumber ?? null,
+        customer_name: comanda.customerName ?? null,
         status: comanda.status,
         opened_at: comanda.openedAt?.toISOString(),
         closed_at: comanda.closedAt?.toISOString(),
@@ -268,6 +272,8 @@ export class SupabaseComandaRepository implements ComandaRepository {
       id: row.id,
       comandaNumber: row.comanda_number ?? undefined,
       label: row.label,
+      tableNumber: row.table_number ?? undefined,
+      customerName: row.customer_name ?? undefined,
       status: row.status,
       openedAt: row.opened_at ? new Date(row.opened_at) : undefined,
       closedAt: row.closed_at ? new Date(row.closed_at) : undefined,

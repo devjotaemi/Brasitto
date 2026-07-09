@@ -152,6 +152,43 @@ Verificacao executada:
 - `npm.cmd run build`: passou; Vite gerou `dist/`.
 - O build manteve avisos conhecidos do `lucide-react` e chunk acima de 500 kB.
 
+### 2026-07-08 - Comandas por mesas numeradas
+
+Plano detalhado antes da implementacao:
+
+1. Alterar comandas para usar mesas de 1 a 50.
+2. Adicionar dados estruturados `tableNumber` e `customerName` na comanda.
+3. Atualizar banco com `table_number`, `customer_name` e indice unico para impedir duas comandas abertas na mesma mesa.
+4. Trocar a tela de comandas por uma grade de mesas.
+5. Mesa livre aparece verde; mesa ocupada aparece vermelha.
+6. Ao clicar em mesa livre, pedir nome do cliente e abrir comanda.
+7. Ao clicar em mesa ocupada, abrir a comanda para lancar itens.
+8. Preservar fechamento, historico e faturamento.
+9. Rodar testes e build ao final.
+
+Alteracoes realizadas:
+
+- `Comanda` agora aceita `tableNumber` e `customerName`.
+- `supabase/schema.sql` recebeu `table_number`, `customer_name` e indice unico parcial para mesa aberta.
+- `SupabaseComandaRepository` grava e le os novos campos.
+- Repositorio local impede duas comandas abertas na mesma mesa.
+- `AdminCommandasPanel` agora mostra grade de mesas 1 a 50.
+- Mesa livre fica verde e mesa ocupada fica vermelha.
+- Clique em mesa livre pede nome do cliente e abre a comanda.
+- Clique em mesa ocupada seleciona a comanda para lancar itens.
+- Historico segue exibindo comandas fechadas com mesa e cliente.
+- Testes de dominio cobrem mesa, cliente e mesa invalida.
+
+Pendente para producao:
+
+- Rodar `supabase/schema.sql` no projeto Supabase antes do deploy usar as novas colunas e o indice unico.
+
+Verificacao executada:
+
+- `npm.cmd run test`: passou com 30 arquivos de teste e 121 testes.
+- `npm.cmd run build`: passou; Vite gerou `dist/`.
+- O build manteve avisos conhecidos do `lucide-react` e chunk acima de 500 kB.
+
 ### 2026-07-08 - Historico de comandas e faturamento
 
 Plano detalhado antes da implementacao:

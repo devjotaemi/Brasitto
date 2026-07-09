@@ -22,6 +22,37 @@ describe('Comanda', () => {
     expect(comanda.total).toBe(0);
   });
 
+  it('deve abrir comanda por mesa e cliente', () => {
+    const comanda = Comanda.create({
+      id: 'comanda-1',
+      tableNumber: 4,
+      customerName: 'Joao',
+    });
+
+    expect(comanda.tableNumber).toBe(4);
+    expect(comanda.customerName).toBe('Joao');
+    expect(comanda.label).toBe('Mesa 4 - Joao');
+  });
+
+  it('nao deve abrir comanda de mesa sem cliente', () => {
+    expect(() =>
+      Comanda.create({
+        id: 'comanda-1',
+        tableNumber: 4,
+      }),
+    ).toThrow('Comanda customer name is required');
+  });
+
+  it('nao deve abrir comanda com mesa fora do intervalo permitido', () => {
+    expect(() =>
+      Comanda.create({
+        id: 'comanda-1',
+        tableNumber: 51,
+        customerName: 'Joao',
+      }),
+    ).toThrow('Comanda table number must be between 1 and 50');
+  });
+
   it('deve adicionar item e calcular total', () => {
     const comanda = Comanda.create({
       id: 'comanda-1',

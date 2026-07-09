@@ -61,6 +61,8 @@ create table if not exists comandas (
   id uuid primary key default gen_random_uuid(),
   comanda_number integer not null default nextval('comanda_number_sequence') unique,
   label text not null,
+  table_number integer,
+  customer_name text,
   status text not null default 'OPEN' check (
     status in ('OPEN', 'CLOSED', 'CANCELED')
   ),
@@ -140,6 +142,12 @@ add column if not exists closed_at timestamptz;
 
 alter table comandas
 add column if not exists notes text;
+
+alter table comandas
+add column if not exists table_number integer;
+
+alter table comandas
+add column if not exists customer_name text;
 
 alter table comandas
 alter column comanda_number set default nextval('comanda_number_sequence');
@@ -281,6 +289,11 @@ on orders(order_number);
 
 create unique index if not exists idx_comandas_comanda_number_unique
 on comandas(comanda_number);
+
+create unique index if not exists idx_comandas_open_table_number_unique
+on comandas(table_number)
+where status = 'OPEN'
+  and table_number is not null;
 
 create or replace function public.get_store_settings()
 returns table (

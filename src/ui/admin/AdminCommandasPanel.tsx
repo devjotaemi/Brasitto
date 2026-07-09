@@ -1,6 +1,5 @@
-import { Plus, RefreshCw, ReceiptText, XCircle, CheckCircle2 } from 'lucide-react';
-import type { FormEvent } from 'react';
-import { useEffect, useState } from 'react';
+import { CheckCircle2, Plus, RefreshCw, XCircle } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Comanda,
   ComandaStatus,
@@ -14,6 +13,10 @@ type AddItemForm = {
   quantity: string;
 };
 
+type AdminCommandasPanelProps = {
+  onCommandasChanged?: () => void;
+};
+
 const {
   addComandaItemUseCase,
   cancelComandaItemUseCase,
@@ -22,6 +25,8 @@ const {
   listProductsUseCase,
   openComandaUseCase,
 } = createCustomerDependencies();
+
+const TABLE_NUMBERS = Array.from({ length: 50 }, (_, index) => index + 1);
 
 const formatCurrency = (value: number) =>
   new Intl.NumberFormat('pt-BR', {
@@ -63,8 +68,16 @@ const getUserFacingErrorMessage = (
     return 'Nao foi possivel conectar ao Supabase. Verifique sua conexao e tente novamente.';
   }
 
-  if (error.message.includes('label')) {
-    return 'Informe mesa, nome ou identificacao da comanda.';
+  if (error.message.includes('customer name')) {
+    return 'Informe o nome do cliente para abrir a mesa.';
+  }
+
+  if (error.message.includes('table number')) {
+    return 'Numero da mesa invalido.';
+  }
+
+  if (error.message.includes('duplicate') || error.message.includes('open comanda')) {
+    return 'Esta mesa ja possui uma comanda aberta.';
   }
 
   if (error.message.includes('quantity')) {
@@ -74,36 +87,50 @@ const getUserFacingErrorMessage = (
   return error.message;
 };
 
-type AdminCommandasPanelProps = {
-  onCommandasChanged?: () => void;
-};
-
 export function AdminCommandasPanel({
   onCommandasChanged,
 }: AdminCommandasPanelProps) {
-  const [commandas, setCommandas] = useState<Comanda[]>([]);
+  const [openCommandas, setOpenCommandas] = useState<Comanda[]>([]);
   const [closedCommandas, setClosedCommandas] = useState<Comanda[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
-  const [label, setLabel] = useState('');
-  const [notes, setNotes] = useState('');
+  const [selectedTableNumber, setSelectedTableNumber] = useState<number | null>(
+    null,
+  );
   const [addItemForms, setAddItemForms] = useState<Record<string, AddItemForm>>(
     {},
   );
   const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
+  const [isOpeningTable, setIsOpeningTable] = useState(false);
   const [updatingComandaId, setUpdatingComandaId] = useState<string | null>(
     null,
   );
   const [errorMessage, setErrorMessage] = useState('');
 
   const activeProducts = products.filter((product) => product.active);
+  const openComandaByTable = useMemo(
+    () => {
+      const entries: Array<[number, Comanda]> = openCommandas.flatMap(
+        (comanda) =>
+          comanda.tableNumber === undefined
+            ? []
+            : [[comanda.tableNumber, comanda]],
+      );
+
+      return new Map(entries);
+    },
+    [openCommandas],
+  );
+  const selectedComanda =
+    selectedTableNumber === null
+      ? null
+      : openComandaByTable.get(selectedTableNumber) ?? null;
 
   async function loadCommandas() {
     setIsLoading(true);
     setErrorMessage('');
 
     try {
-      const [nextCommandas, nextClosedCommandas, nextProducts] =
+      const [nextOpenCommandas, nextClosedCommandas, nextProducts] =
         await Promise.all([
           listCommandasUseCase.execute({
             statuses: [ComandaStatus.OPEN],
@@ -114,7 +141,7 @@ export function AdminCommandasPanel({
           listProductsUseCase.execute(),
         ]);
 
-      setCommandas(nextCommandas);
+      setOpenCommandas(nextOpenCommandas);
       setClosedCommandas(
         nextClosedCommandas.sort(
           (firstComanda, secondComanda) =>
@@ -136,29 +163,38 @@ export function AdminCommandasPanel({
     loadCommandas();
   }, []);
 
-  async function submitComanda(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setIsSaving(true);
+  async function selectTable(tableNumber: number) {
     setErrorMessage('');
+    setSelectedTableNumber(tableNumber);
+
+    if (openComandaByTable.has(tableNumber)) {
+      return;
+    }
+
+    const customerName = window.prompt(`Nome do cliente da mesa ${tableNumber}`);
+
+    if (!customerName?.trim()) {
+      return;
+    }
+
+    setIsOpeningTable(true);
 
     try {
       await openComandaUseCase.execute({
         id: crypto.randomUUID(),
-        label,
-        notes: notes.trim() || undefined,
+        tableNumber,
+        customerName: customerName.trim(),
         openedAt: new Date(),
       });
 
-      setLabel('');
-      setNotes('');
       await loadCommandas();
       onCommandasChanged?.();
     } catch (error) {
       setErrorMessage(
-        getUserFacingErrorMessage(error, 'Nao foi possivel abrir a comanda.'),
+        getUserFacingErrorMessage(error, 'Nao foi possivel abrir a mesa.'),
       );
     } finally {
-      setIsSaving(false);
+      setIsOpeningTable(false);
     }
   }
 
@@ -259,7 +295,7 @@ export function AdminCommandasPanel({
       return;
     }
 
-    if (!window.confirm(`Fechar a comanda ${comanda.label}?`)) {
+    if (!window.confirm(`Fechar a comanda da mesa ${comanda.tableNumber}?`)) {
       return;
     }
 
@@ -268,6 +304,7 @@ export function AdminCommandasPanel({
 
     try {
       await closeComandaUseCase.execute(comanda.id);
+      setSelectedTableNumber(null);
       await loadCommandas();
       onCommandasChanged?.();
     } catch (error) {
@@ -279,68 +316,84 @@ export function AdminCommandasPanel({
     }
   }
 
-  return (
-    <div className="grid gap-6 lg:grid-cols-[360px_1fr]">
-      <form
-        className="h-fit rounded border border-zinc-200 bg-white p-4 shadow-sm"
-        onSubmit={submitComanda}
-      >
-        <div className="mb-4 flex items-center gap-2">
-          <ReceiptText className="h-5 w-5 text-rose-700" />
-          <h2 className="text-lg font-semibold text-zinc-950">
-            Nova comanda
-          </h2>
-        </div>
+  function renderComandaItems(comanda: Comanda, canCancel: boolean) {
+    const activeItems = comanda.items.filter((item) => !item.canceledAt);
+    const canceledItems = comanda.items.filter((item) => item.canceledAt);
 
-        <div className="grid gap-3">
-          <label className="grid gap-1 text-sm font-medium text-zinc-700">
-            Mesa, nome ou identificacao
-            <input
-              className="h-10 rounded border border-zinc-300 px-3 text-sm text-zinc-950 outline-none transition focus:border-rose-700"
-              placeholder="Mesa 4"
-              required
-              value={label}
-              onChange={(event) => {
-                setErrorMessage('');
-                setLabel(event.target.value);
-              }}
-            />
-          </label>
-
-          <label className="grid gap-1 text-sm font-medium text-zinc-700">
-            Observacoes
-            <textarea
-              className="min-h-24 rounded border border-zinc-300 px-3 py-2 text-sm text-zinc-950 outline-none transition focus:border-rose-700"
-              value={notes}
-              onChange={(event) => {
-                setErrorMessage('');
-                setNotes(event.target.value);
-              }}
-            />
-          </label>
-        </div>
-
-        {errorMessage ? (
-          <p className="mt-4 rounded border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800">
-            {errorMessage}
+    return (
+      <>
+        {activeItems.length === 0 ? (
+          <p className="py-4 text-sm text-zinc-600">
+            Nenhum item ativo nesta comanda.
           </p>
+        ) : (
+          <div className="divide-y divide-zinc-100">
+            {activeItems.map((item) => (
+              <div
+                className="grid gap-3 py-3 sm:grid-cols-[1fr_auto_auto]"
+                key={item.id}
+              >
+                <div>
+                  <p className="text-sm font-semibold text-zinc-950">
+                    {item.product.name}
+                  </p>
+                  <p className="mt-1 text-sm text-zinc-600">
+                    {item.quantity} x {formatCurrency(item.unitPrice)}
+                  </p>
+                </div>
+                <strong className="text-sm font-semibold text-zinc-950">
+                  {formatCurrency(item.totalPrice)}
+                </strong>
+                {canCancel ? (
+                  <button
+                    className="flex h-9 items-center justify-center gap-2 rounded border border-rose-300 bg-rose-50 px-3 text-sm font-semibold text-rose-800 transition hover:border-rose-400 disabled:cursor-not-allowed disabled:opacity-50"
+                    disabled={updatingComandaId === comanda.id}
+                    type="button"
+                    onClick={() => cancelItem(comanda, item)}
+                  >
+                    <XCircle className="h-4 w-4" />
+                    Cancelar
+                  </button>
+                ) : null}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {canceledItems.length > 0 ? (
+          <details className="mt-3 rounded border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-600">
+            <summary className="cursor-pointer font-semibold text-zinc-800">
+              {canceledItems.length} itens cancelados
+            </summary>
+            <div className="mt-2 divide-y divide-zinc-200">
+              {canceledItems.map((item) => (
+                <div
+                  className="flex items-center justify-between gap-3 py-2"
+                  key={item.id}
+                >
+                  <span>
+                    {item.quantity} x {item.product.name}
+                  </span>
+                  <span>{formatCurrency(item.totalPrice)}</span>
+                </div>
+              ))}
+            </div>
+          </details>
         ) : null}
+      </>
+    );
+  }
 
-        <button
-          className="mt-4 flex h-11 w-full items-center justify-center gap-2 rounded bg-rose-700 text-sm font-semibold text-white transition hover:bg-rose-800 disabled:cursor-not-allowed disabled:opacity-50"
-          disabled={isSaving}
-          type="submit"
-        >
-          <Plus className="h-4 w-4" />
-          {isSaving ? 'Abrindo...' : 'Abrir comanda'}
-        </button>
-      </form>
-
+  return (
+    <div className="grid gap-6 xl:grid-cols-[520px_1fr]">
       <section>
-        <div className="mb-4 flex items-center justify-between gap-3">
-          <h2 className="text-lg font-semibold text-zinc-950">
-            Comandas abertas
-          </h2>
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-semibold text-zinc-950">Mesas</h2>
+            <p className="mt-1 text-sm text-zinc-600">
+              Verde livre, vermelho ocupada.
+            </p>
+          </div>
           <button
             className="flex h-10 items-center justify-center gap-2 rounded border border-zinc-300 bg-white px-3 text-sm font-semibold text-zinc-800 transition hover:border-zinc-400"
             type="button"
@@ -351,183 +404,147 @@ export function AdminCommandasPanel({
           </button>
         </div>
 
-        {isLoading ? (
-          <div className="rounded border border-zinc-200 bg-white p-4 text-sm text-zinc-600 shadow-sm">
-            Carregando comandas...
-          </div>
+        {errorMessage ? (
+          <p className="mb-4 rounded border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800">
+            {errorMessage}
+          </p>
         ) : null}
 
-        {!isLoading && commandas.length === 0 ? (
-          <div className="rounded border border-zinc-200 bg-white p-4 text-sm text-zinc-600 shadow-sm">
-            Nenhuma comanda aberta.
-          </div>
-        ) : null}
-
-        <div className="grid gap-4">
-          {commandas.map((comanda) => {
-            const addItemForm = comanda.id
-              ? addItemForms[comanda.id] ?? {
-                  productId: activeProducts[0]?.id ?? '',
-                  quantity: '1',
-                }
-              : { productId: '', quantity: '1' };
-            const activeItems = comanda.items.filter((item) => !item.canceledAt);
-            const canceledItems = comanda.items.filter(
-              (item) => item.canceledAt,
-            );
+        <div className="grid grid-cols-5 gap-2 sm:grid-cols-10">
+          {TABLE_NUMBERS.map((tableNumber) => {
+            const isOccupied = openComandaByTable.has(tableNumber);
+            const isSelected = selectedTableNumber === tableNumber;
 
             return (
-              <article
-                className="rounded border border-zinc-200 bg-white p-4 shadow-sm"
-                key={comanda.id}
+              <button
+                className={`aspect-square rounded border text-sm font-semibold transition ${
+                  isSelected
+                    ? 'border-zinc-950 ring-2 ring-zinc-950'
+                    : isOccupied
+                      ? 'border-rose-700 bg-rose-600 text-white hover:bg-rose-700'
+                      : 'border-emerald-700 bg-emerald-600 text-white hover:bg-emerald-700'
+                } disabled:cursor-not-allowed disabled:opacity-60`}
+                disabled={isOpeningTable || isLoading}
+                key={tableNumber}
+                type="button"
+                onClick={() => selectTable(tableNumber)}
               >
-                <div className="flex flex-col gap-3 border-b border-zinc-100 pb-4 sm:flex-row sm:items-start sm:justify-between">
-                  <div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h3 className="text-lg font-semibold text-zinc-950">
-                        {comanda.label}
-                      </h3>
-                      <span className="rounded bg-zinc-100 px-2 py-1 text-xs font-medium text-zinc-700">
-                        {getComandaDisplayNumber(comanda)}
-                      </span>
-                      <span className="rounded bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-800">
-                        Aberta
-                      </span>
-                    </div>
-                    {comanda.notes ? (
-                      <p className="mt-2 rounded border border-sky-200 bg-sky-50 p-3 text-sm text-sky-950">
-                        Observacao: {comanda.notes}
-                      </p>
-                    ) : null}
-                  </div>
-
-                  <div className="text-left sm:text-right">
-                    <p className="text-sm text-zinc-600">Total parcial</p>
-                    <p className="text-xl font-semibold text-zinc-950">
-                      {formatCurrency(comanda.total)}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="grid gap-3 border-b border-zinc-100 py-4 lg:grid-cols-[1fr_90px_auto]">
-                  <select
-                    className="h-10 rounded border border-zinc-300 px-3 text-sm text-zinc-950 outline-none transition focus:border-rose-700"
-                    value={addItemForm.productId}
-                    onChange={(event) =>
-                      comanda.id
-                        ? updateAddItemForm(
-                            comanda.id,
-                            'productId',
-                            event.target.value,
-                          )
-                        : undefined
-                    }
-                  >
-                    {activeProducts.map((product) => (
-                      <option key={product.id} value={product.id}>
-                        {product.name} - {formatCurrency(product.price)}
-                      </option>
-                    ))}
-                  </select>
-                  <input
-                    className="h-10 rounded border border-zinc-300 px-3 text-sm text-zinc-950 outline-none transition focus:border-rose-700"
-                    min="1"
-                    type="number"
-                    value={addItemForm.quantity}
-                    onChange={(event) =>
-                      comanda.id
-                        ? updateAddItemForm(
-                            comanda.id,
-                            'quantity',
-                            event.target.value,
-                          )
-                        : undefined
-                    }
-                  />
-                  <button
-                    className="flex h-10 items-center justify-center gap-2 rounded bg-rose-700 px-4 text-sm font-semibold text-white transition hover:bg-rose-800 disabled:cursor-not-allowed disabled:opacity-50"
-                    disabled={
-                      !activeProducts.length ||
-                      updatingComandaId === comanda.id
-                    }
-                    type="button"
-                    onClick={() => addItem(comanda)}
-                  >
-                    <Plus className="h-4 w-4" />
-                    Adicionar
-                  </button>
-                </div>
-
-                {activeItems.length === 0 ? (
-                  <p className="py-4 text-sm text-zinc-600">
-                    Nenhum item ativo nesta comanda.
-                  </p>
-                ) : (
-                  <div className="divide-y divide-zinc-100">
-                    {activeItems.map((item) => (
-                      <div
-                        className="grid gap-3 py-3 sm:grid-cols-[1fr_auto_auto]"
-                        key={item.id}
-                      >
-                        <div>
-                          <p className="text-sm font-semibold text-zinc-950">
-                            {item.product.name}
-                          </p>
-                          <p className="mt-1 text-sm text-zinc-600">
-                            {item.quantity} x {formatCurrency(item.unitPrice)}
-                          </p>
-                        </div>
-                        <strong className="text-sm font-semibold text-zinc-950">
-                          {formatCurrency(item.totalPrice)}
-                        </strong>
-                        <button
-                          className="flex h-9 items-center justify-center gap-2 rounded border border-rose-300 bg-rose-50 px-3 text-sm font-semibold text-rose-800 transition hover:border-rose-400 disabled:cursor-not-allowed disabled:opacity-50"
-                          disabled={updatingComandaId === comanda.id}
-                          type="button"
-                          onClick={() => cancelItem(comanda, item)}
-                        >
-                          <XCircle className="h-4 w-4" />
-                          Cancelar
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {canceledItems.length > 0 ? (
-                  <details className="mt-3 rounded border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-600">
-                    <summary className="cursor-pointer font-semibold text-zinc-800">
-                      {canceledItems.length} itens cancelados
-                    </summary>
-                    <div className="mt-2 divide-y divide-zinc-200">
-                      {canceledItems.map((item) => (
-                        <div
-                          className="flex items-center justify-between gap-3 py-2"
-                          key={item.id}
-                        >
-                          <span>
-                            {item.quantity} x {item.product.name}
-                          </span>
-                          <span>{formatCurrency(item.totalPrice)}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </details>
-                ) : null}
-
-                <button
-                  className="mt-4 flex h-10 w-full items-center justify-center gap-2 rounded border border-emerald-300 bg-emerald-50 text-sm font-semibold text-emerald-900 transition hover:border-emerald-400 disabled:cursor-not-allowed disabled:opacity-50"
-                  disabled={updatingComandaId === comanda.id}
-                  type="button"
-                  onClick={() => closeComanda(comanda)}
-                >
-                  <CheckCircle2 className="h-4 w-4" />
-                  Fechar comanda
-                </button>
-              </article>
+                {tableNumber}
+              </button>
             );
           })}
         </div>
+      </section>
+
+      <section>
+        {selectedComanda ? (
+          <article className="rounded border border-zinc-200 bg-white p-4 shadow-sm">
+            <div className="flex flex-col gap-3 border-b border-zinc-100 pb-4 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <h3 className="text-lg font-semibold text-zinc-950">
+                    Mesa {selectedComanda.tableNumber}
+                  </h3>
+                  <span className="rounded bg-zinc-100 px-2 py-1 text-xs font-medium text-zinc-700">
+                    {getComandaDisplayNumber(selectedComanda)}
+                  </span>
+                  <span className="rounded bg-rose-50 px-2 py-1 text-xs font-medium text-rose-800">
+                    Ocupada
+                  </span>
+                </div>
+                <p className="mt-2 text-sm text-zinc-700">
+                  Cliente: {selectedComanda.customerName ?? selectedComanda.label}
+                </p>
+                <p className="mt-1 text-sm text-zinc-600">
+                  Aberta em {formatDateTime(selectedComanda.openedAt)}
+                </p>
+              </div>
+
+              <div className="text-left sm:text-right">
+                <p className="text-sm text-zinc-600">Total parcial</p>
+                <p className="text-xl font-semibold text-zinc-950">
+                  {formatCurrency(selectedComanda.total)}
+                </p>
+              </div>
+            </div>
+
+            <div className="grid gap-3 border-b border-zinc-100 py-4 lg:grid-cols-[1fr_90px_auto]">
+              <select
+                className="h-10 rounded border border-zinc-300 px-3 text-sm text-zinc-950 outline-none transition focus:border-rose-700"
+                value={
+                  selectedComanda.id
+                    ? addItemForms[selectedComanda.id]?.productId ??
+                      activeProducts[0]?.id ??
+                      ''
+                    : ''
+                }
+                onChange={(event) =>
+                  selectedComanda.id
+                    ? updateAddItemForm(
+                        selectedComanda.id,
+                        'productId',
+                        event.target.value,
+                      )
+                    : undefined
+                }
+              >
+                {activeProducts.map((product) => (
+                  <option key={product.id} value={product.id}>
+                    {product.name} - {formatCurrency(product.price)}
+                  </option>
+                ))}
+              </select>
+              <input
+                className="h-10 rounded border border-zinc-300 px-3 text-sm text-zinc-950 outline-none transition focus:border-rose-700"
+                min="1"
+                type="number"
+                value={
+                  selectedComanda.id
+                    ? addItemForms[selectedComanda.id]?.quantity ?? '1'
+                    : '1'
+                }
+                onChange={(event) =>
+                  selectedComanda.id
+                    ? updateAddItemForm(
+                        selectedComanda.id,
+                        'quantity',
+                        event.target.value,
+                      )
+                    : undefined
+                }
+              />
+              <button
+                className="flex h-10 items-center justify-center gap-2 rounded bg-rose-700 px-4 text-sm font-semibold text-white transition hover:bg-rose-800 disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={
+                  !activeProducts.length ||
+                  updatingComandaId === selectedComanda.id
+                }
+                type="button"
+                onClick={() => addItem(selectedComanda)}
+              >
+                <Plus className="h-4 w-4" />
+                Adicionar
+              </button>
+            </div>
+
+            {renderComandaItems(selectedComanda, true)}
+
+            <button
+              className="mt-4 flex h-10 w-full items-center justify-center gap-2 rounded border border-emerald-300 bg-emerald-50 text-sm font-semibold text-emerald-900 transition hover:border-emerald-400 disabled:cursor-not-allowed disabled:opacity-50"
+              disabled={updatingComandaId === selectedComanda.id}
+              type="button"
+              onClick={() => closeComanda(selectedComanda)}
+            >
+              <CheckCircle2 className="h-4 w-4" />
+              Fechar comanda
+            </button>
+          </article>
+        ) : (
+          <div className="rounded border border-zinc-200 bg-white p-6 text-sm text-zinc-600 shadow-sm">
+            Selecione uma mesa verde para abrir comanda ou uma mesa vermelha
+            para lancar itens.
+          </div>
+        )}
 
         <div className="mt-8">
           <h2 className="mb-4 text-lg font-semibold text-zinc-950">
@@ -541,89 +558,48 @@ export function AdminCommandasPanel({
           ) : null}
 
           <div className="grid gap-3">
-            {closedCommandas.map((comanda) => {
-              const activeItems = comanda.items.filter(
-                (item) => !item.canceledAt,
-              );
-              const canceledItems = comanda.items.filter(
-                (item) => item.canceledAt,
-              );
-
-              return (
-                <article
-                  className="rounded border border-zinc-200 bg-white p-4 text-sm shadow-sm"
-                  key={comanda.id}
-                >
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                    <div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <h3 className="text-base font-semibold text-zinc-950">
-                          {comanda.label}
-                        </h3>
-                        <span className="rounded bg-zinc-100 px-2 py-1 text-xs font-medium text-zinc-700">
-                          {getComandaDisplayNumber(comanda)}
-                        </span>
-                        <span className="rounded bg-zinc-100 px-2 py-1 text-xs font-medium text-zinc-700">
-                          Fechada
-                        </span>
-                      </div>
-                      <p className="mt-2 text-zinc-600">
-                        Aberta em {formatDateTime(comanda.openedAt)}
-                      </p>
-                      <p className="mt-1 text-zinc-600">
-                        Fechada em {formatDateTime(comanda.closedAt)}
-                      </p>
+            {closedCommandas.map((comanda) => (
+              <article
+                className="rounded border border-zinc-200 bg-white p-4 text-sm shadow-sm"
+                key={comanda.id}
+              >
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="text-base font-semibold text-zinc-950">
+                        {comanda.tableNumber
+                          ? `Mesa ${comanda.tableNumber}`
+                          : comanda.label}
+                      </h3>
+                      <span className="rounded bg-zinc-100 px-2 py-1 text-xs font-medium text-zinc-700">
+                        {getComandaDisplayNumber(comanda)}
+                      </span>
+                      <span className="rounded bg-zinc-100 px-2 py-1 text-xs font-medium text-zinc-700">
+                        Fechada
+                      </span>
                     </div>
-
-                    <div className="text-left sm:text-right">
-                      <p className="text-zinc-600">Total final</p>
-                      <p className="text-xl font-semibold text-zinc-950">
-                        {formatCurrency(comanda.total)}
-                      </p>
-                    </div>
+                    <p className="mt-2 text-zinc-700">
+                      Cliente: {comanda.customerName ?? comanda.label}
+                    </p>
+                    <p className="mt-1 text-zinc-600">
+                      Aberta em {formatDateTime(comanda.openedAt)}
+                    </p>
+                    <p className="mt-1 text-zinc-600">
+                      Fechada em {formatDateTime(comanda.closedAt)}
+                    </p>
                   </div>
 
-                  {activeItems.length > 0 ? (
-                    <div className="mt-4 divide-y divide-zinc-100 border-t border-zinc-100 pt-1">
-                      {activeItems.map((item) => (
-                        <div
-                          className="grid grid-cols-[1fr_auto] gap-3 py-2"
-                          key={item.id}
-                        >
-                          <span className="text-zinc-700">
-                            {item.quantity} x {item.product.name}
-                          </span>
-                          <strong className="font-semibold text-zinc-950">
-                            {formatCurrency(item.totalPrice)}
-                          </strong>
-                        </div>
-                      ))}
-                    </div>
-                  ) : null}
+                  <div className="text-left sm:text-right">
+                    <p className="text-zinc-600">Total final</p>
+                    <p className="text-xl font-semibold text-zinc-950">
+                      {formatCurrency(comanda.total)}
+                    </p>
+                  </div>
+                </div>
 
-                  {canceledItems.length > 0 ? (
-                    <details className="mt-3 rounded border border-zinc-200 bg-zinc-50 p-3 text-zinc-600">
-                      <summary className="cursor-pointer font-semibold text-zinc-800">
-                        {canceledItems.length} itens cancelados
-                      </summary>
-                      <div className="mt-2 divide-y divide-zinc-200">
-                        {canceledItems.map((item) => (
-                          <div
-                            className="flex items-center justify-between gap-3 py-2"
-                            key={item.id}
-                          >
-                            <span>
-                              {item.quantity} x {item.product.name}
-                            </span>
-                            <span>{formatCurrency(item.totalPrice)}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </details>
-                  ) : null}
-                </article>
-              );
-            })}
+                {renderComandaItems(comanda, false)}
+              </article>
+            ))}
           </div>
         </div>
       </section>
