@@ -6,6 +6,7 @@ Este arquivo registra o estado do projeto, decisoes, planos e alteracoes para qu
 
 - Registrar neste arquivo todas as alteracoes relevantes feitas no projeto.
 - Antes de implementar qualquer feature, detalhar o plano de execucao.
+- Depois de detalhar o plano de uma feature, pedir aprovacao explicita antes de implementar.
 - Ao finalizar alteracoes, executar os testes aplicaveis e registrar o resultado.
 - Preservar a separacao entre dominio, aplicacao, infraestrutura e UI.
 - Testes de dominio e aplicacao nao devem depender do banco real.
@@ -115,6 +116,51 @@ Verificacao executada:
 - `npm.cmd run build`: passou; Vite gerou `dist/`.
 - O build manteve avisos conhecidos do `lucide-react` sobre diretivas `"use client"` ignoradas pelo bundler.
 - O build tambem avisou que um chunk passou de 500 kB apos minificacao; nao bloqueia o deploy.
+
+### 2026-07-08 - Comandas no admin
+
+Plano detalhado antes da implementacao:
+
+1. Criar comandas como fluxo separado de pedidos delivery/retirada.
+2. Criar dominio `Comanda` com status `OPEN`, `CLOSED` e `CANCELED`.
+3. Criar use cases para abrir, listar, adicionar item, cancelar item e fechar comanda.
+4. Criar tabelas `comandas` e `comanda_items` no Supabase.
+5. Criar policies admin-only para comandas.
+6. Criar repositório Supabase e repositório local de comandas.
+7. Adicionar aba `Comandas` no painel administrativo.
+8. Rodar testes e build ao final.
+
+Alteracoes realizadas:
+
+- Criado dominio `src/domain/comanda/Comanda.ts`.
+- Criados contratos e use cases de comandas.
+- Criado `SupabaseComandaRepository`.
+- `createCustomerDependencies` agora fornece use cases de comandas.
+- `supabase/schema.sql` recebeu tabelas, sequence, indices e realtime para comandas.
+- `supabase/policies.sql` recebeu grants e policies admin-only para comandas.
+- Criado `AdminCommandasPanel` com abertura de comanda, inclusao de itens, cancelamento de item e fechamento.
+- `AdminApp` ganhou a aba `Comandas`.
+- Criados testes de dominio e aplicacao para comandas.
+
+Pendente para producao:
+
+- Rodar `supabase/schema.sql` e `supabase/policies.sql` no projeto Supabase antes de usar a aba `Comandas` em producao.
+
+Verificacao executada:
+
+- `npm.cmd run test`: passou com 29 arquivos de teste e 117 testes.
+- `npm.cmd run build`: passou; Vite gerou `dist/`.
+- O build manteve avisos conhecidos do `lucide-react` e chunk acima de 500 kB.
+
+### 2026-07-08 - Regra de aprovacao antes de features
+
+Alteracoes realizadas:
+
+- Registrada regra operacional: depois de detalhar o plano de uma feature, pedir aprovacao explicita antes de implementar.
+
+Verificacao executada:
+
+- `npm.cmd run test`: passou com 27 arquivos de teste e 112 testes.
 
 ### 2026-07-08 - Fotos dos produtos
 

@@ -9,6 +9,7 @@ create table if not exists products (
 );
 
 create sequence if not exists order_number_sequence;
+create sequence if not exists comanda_number_sequence;
 
 create table if not exists orders (
   id uuid primary key default gen_random_uuid(),
@@ -54,6 +55,30 @@ create table if not exists order_items (
   unit_price numeric(10, 2) not null check (unit_price > 0),
   total_price numeric(10, 2) not null check (total_price >= 0),
   created_at timestamptz not null default now()
+);
+
+create table if not exists comandas (
+  id uuid primary key default gen_random_uuid(),
+  comanda_number integer not null default nextval('comanda_number_sequence') unique,
+  label text not null,
+  status text not null default 'OPEN' check (
+    status in ('OPEN', 'CLOSED', 'CANCELED')
+  ),
+  opened_at timestamptz not null default now(),
+  closed_at timestamptz,
+  notes text
+);
+
+create table if not exists comanda_items (
+  id uuid primary key default gen_random_uuid(),
+  comanda_id uuid not null references comandas(id) on delete cascade,
+  product_id uuid references products(id),
+  product_name text not null,
+  quantity integer not null check (quantity > 0),
+  unit_price numeric(10, 2) not null check (unit_price > 0),
+  total_price numeric(10, 2) not null check (total_price >= 0),
+  created_at timestamptz not null default now(),
+  canceled_at timestamptz
 );
 
 create table if not exists app_settings (
@@ -107,6 +132,25 @@ add column if not exists cancellation_reason text;
 alter table products
 add column if not exists image_url text;
 
+alter table comandas
+add column if not exists comanda_number integer;
+
+alter table comandas
+add column if not exists closed_at timestamptz;
+
+alter table comandas
+add column if not exists notes text;
+
+alter table comandas
+alter column comanda_number set default nextval('comanda_number_sequence');
+
+update comandas
+set comanda_number = nextval('comanda_number_sequence')
+where comanda_number is null;
+
+alter table comandas
+alter column comanda_number set not null;
+
 do $$
 begin
   if not exists (
@@ -156,6 +200,8 @@ where customer_phone_normalized is null
 create index if not exists idx_products_active on products(active);
 create index if not exists idx_orders_status on orders(status);
 create index if not exists idx_order_items_order_id on order_items(order_id);
+create index if not exists idx_comandas_status on comandas(status);
+create index if not exists idx_comanda_items_comanda_id on comanda_items(comanda_id);
 create index if not exists idx_orders_active_phone_normalized
 on orders(customer_phone_normalized)
 where status in (
@@ -197,11 +243,44 @@ begin
   ) then
     alter publication supabase_realtime add table public.app_settings;
   end if;
+
+  if exists (
+    select 1
+    from pg_publication
+    where pubname = 'supabase_realtime'
+  )
+  and not exists (
+    select 1
+    from pg_publication_tables
+    where pubname = 'supabase_realtime'
+      and schemaname = 'public'
+      and tablename = 'comandas'
+  ) then
+    alter publication supabase_realtime add table public.comandas;
+  end if;
+
+  if exists (
+    select 1
+    from pg_publication
+    where pubname = 'supabase_realtime'
+  )
+  and not exists (
+    select 1
+    from pg_publication_tables
+    where pubname = 'supabase_realtime'
+      and schemaname = 'public'
+      and tablename = 'comanda_items'
+  ) then
+    alter publication supabase_realtime add table public.comanda_items;
+  end if;
 end;
 $$;
 
 create unique index if not exists idx_orders_order_number_unique
 on orders(order_number);
+
+create unique index if not exists idx_comandas_comanda_number_unique
+on comandas(comanda_number);
 
 create or replace function public.get_store_settings()
 returns table (

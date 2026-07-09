@@ -1,17 +1,26 @@
 import { CalculateOrderTotalUseCase } from '../../application/calculate-order-total/CalculateOrderTotalUseCase';
+import { AddComandaItemUseCase } from '../../application/add-comanda-item/AddComandaItemUseCase';
+import { CancelComandaItemUseCase } from '../../application/cancel-comanda-item/CancelComandaItemUseCase';
 import { CancelCustomerOrderUseCase } from '../../application/cancel-customer-order/CancelCustomerOrderUseCase';
+import { CloseComandaUseCase } from '../../application/close-comanda/CloseComandaUseCase';
 import { CreateOrderUseCase } from '../../application/create-order/CreateOrderUseCase';
 import { GetCustomerOrderStatusUseCase } from '../../application/get-customer-order-status/GetCustomerOrderStatusUseCase';
 import { GetDatabaseMonitoringUseCase } from '../../application/get-database-monitoring/GetDatabaseMonitoringUseCase';
 import { GetApplicationLockStatusUseCase } from '../../application/get-application-lock-status/GetApplicationLockStatusUseCase';
 import { GetStoreSettingsUseCase } from '../../application/get-store-settings/GetStoreSettingsUseCase';
+import { ListCommandasUseCase } from '../../application/list-commandas/ListCommandasUseCase';
 import { ListActiveProductsUseCase } from '../../application/list-active-products/ListActiveProductsUseCase';
 import { ListProductsUseCase } from '../../application/list-products/ListProductsUseCase';
 import { ListOrdersUseCase } from '../../application/list-orders/ListOrdersUseCase';
+import { OpenComandaUseCase } from '../../application/open-comanda/OpenComandaUseCase';
 import type {
   ApplicationLockRepository,
   ApplicationLockStatus,
 } from '../../application/repositories/ApplicationLockRepository';
+import type {
+  ComandaListOptions,
+  ComandaRepository,
+} from '../../application/repositories/ComandaRepository';
 import type {
   DatabaseMonitoringMetric,
   DatabaseMonitoringRepository,
@@ -27,9 +36,11 @@ import { SetApplicationLockStatusUseCase } from '../../application/set-applicati
 import { SetStoreSettingsUseCase } from '../../application/set-store-settings/SetStoreSettingsUseCase';
 import { UpdateOrderEstimateUseCase } from '../../application/update-order-estimate/UpdateOrderEstimateUseCase';
 import { UpdateOrderStatusUseCase } from '../../application/update-order-status/UpdateOrderStatusUseCase';
+import { Comanda } from '../../domain/comanda/Comanda';
 import { OrderStatus, type Order } from '../../domain/order/Order';
 import { Product } from '../../domain/product/Product';
 import { SupabaseApplicationLockRepository } from '../../infrastructure/repositories/SupabaseApplicationLockRepository';
+import { SupabaseComandaRepository } from '../../infrastructure/repositories/SupabaseComandaRepository';
 import { SupabaseDatabaseMonitoringRepository } from '../../infrastructure/repositories/SupabaseDatabaseMonitoringRepository';
 import { SupabaseOrderRepository } from '../../infrastructure/repositories/SupabaseOrderRepository';
 import { SupabaseProductRepository } from '../../infrastructure/repositories/SupabaseProductRepository';
@@ -50,6 +61,11 @@ type CustomerDependencies = {
   listActiveProductsUseCase: ListActiveProductsUseCase;
   listProductsUseCase: ListProductsUseCase;
   listOrdersUseCase: ListOrdersUseCase;
+  listCommandasUseCase: ListCommandasUseCase;
+  openComandaUseCase: OpenComandaUseCase;
+  addComandaItemUseCase: AddComandaItemUseCase;
+  cancelComandaItemUseCase: CancelComandaItemUseCase;
+  closeComandaUseCase: CloseComandaUseCase;
   saveProductUseCase: SaveProductUseCase;
   getApplicationLockStatusUseCase: GetApplicationLockStatusUseCase;
   setApplicationLockStatusUseCase: SetApplicationLockStatusUseCase;
@@ -172,6 +188,83 @@ class LocalProductRepository implements ProductRepository {
   }
 }
 
+class LocalComandaRepository implements ComandaRepository {
+  private readonly commandas = new Map<string, Comanda>();
+
+  async save(comanda: Comanda): Promise<Comanda> {
+    if (!comanda.id) {
+      throw new Error('Comanda must have an id to be saved');
+    }
+
+    this.commandas.set(comanda.id, comanda);
+
+    return comanda;
+  }
+
+  async findById(id: string): Promise<Comanda | null> {
+    return this.commandas.get(id) ?? null;
+  }
+
+  async findAll(options: ComandaListOptions = {}): Promise<Comanda[]> {
+    const commandas = [...this.commandas.values()];
+
+    if (!options.statuses?.length) {
+      return commandas;
+    }
+
+    return commandas.filter((comanda) =>
+      options.statuses?.includes(comanda.status),
+    );
+  }
+
+  async addItem(
+    comandaId: string,
+    product: Product,
+    quantity: number,
+  ): Promise<Comanda> {
+    const comanda = await this.findById(comandaId);
+
+    if (!comanda) {
+      throw new Error('Comanda not found');
+    }
+
+    const updatedComanda = comanda.addItem(
+      product,
+      quantity,
+      crypto.randomUUID(),
+    );
+    this.commandas.set(comandaId, updatedComanda);
+
+    return updatedComanda;
+  }
+
+  async cancelItem(comandaId: string, itemId: string): Promise<Comanda> {
+    const comanda = await this.findById(comandaId);
+
+    if (!comanda) {
+      throw new Error('Comanda not found');
+    }
+
+    const updatedComanda = comanda.cancelItem(itemId);
+    this.commandas.set(comandaId, updatedComanda);
+
+    return updatedComanda;
+  }
+
+  async close(comandaId: string): Promise<Comanda> {
+    const comanda = await this.findById(comandaId);
+
+    if (!comanda) {
+      throw new Error('Comanda not found');
+    }
+
+    const updatedComanda = comanda.close();
+    this.commandas.set(comandaId, updatedComanda);
+
+    return updatedComanda;
+  }
+}
+
 class LocalApplicationLockRepository implements ApplicationLockRepository {
   private status: ApplicationLockStatus = {
     locked: false,
@@ -266,6 +359,7 @@ export function createCustomerDependencies(): CustomerDependencies {
 
   let productRepository: ProductRepository;
   let orderRepository: OrderRepository;
+  let comandaRepository: ComandaRepository;
   let applicationLockRepository: ApplicationLockRepository;
   let storeSettingsRepository: StoreSettingsRepository;
   let databaseMonitoringRepository: DatabaseMonitoringRepository;
@@ -274,6 +368,7 @@ export function createCustomerDependencies(): CustomerDependencies {
   if (isSupabaseConfigured && supabaseClient !== null) {
     productRepository = new SupabaseProductRepository(supabaseClient);
     orderRepository = new SupabaseOrderRepository(supabaseClient);
+    comandaRepository = new SupabaseComandaRepository(supabaseClient);
     applicationLockRepository = new SupabaseApplicationLockRepository(
       supabaseClient,
     );
@@ -287,6 +382,7 @@ export function createCustomerDependencies(): CustomerDependencies {
   } else {
     productRepository = new LocalProductRepository(localProducts);
     orderRepository = new LocalOrderRepository();
+    comandaRepository = new LocalComandaRepository();
     applicationLockRepository = new LocalApplicationLockRepository();
     storeSettingsRepository = new LocalStoreSettingsRepository();
     databaseMonitoringRepository = new LocalDatabaseMonitoringRepository();
@@ -309,6 +405,11 @@ export function createCustomerDependencies(): CustomerDependencies {
     ),
     listProductsUseCase: new ListProductsUseCase(productRepository),
     listOrdersUseCase: new ListOrdersUseCase(orderRepository),
+    listCommandasUseCase: new ListCommandasUseCase(comandaRepository),
+    openComandaUseCase: new OpenComandaUseCase(comandaRepository),
+    addComandaItemUseCase: new AddComandaItemUseCase(comandaRepository),
+    cancelComandaItemUseCase: new CancelComandaItemUseCase(comandaRepository),
+    closeComandaUseCase: new CloseComandaUseCase(comandaRepository),
     saveProductUseCase: new SaveProductUseCase(productRepository),
     getApplicationLockStatusUseCase: new GetApplicationLockStatusUseCase(
       applicationLockRepository,

@@ -33,6 +33,7 @@ import {
   notifyApplicationLockStatusChanged,
   useApplicationLockStatus,
 } from '../useApplicationLockStatus';
+import { AdminCommandasPanel } from './AdminCommandasPanel';
 import { AdminMonitoringPanel } from './AdminMonitoringPanel';
 import { AdminProductsPanel } from './AdminProductsPanel';
 import { AdminStoreSettingsPanel } from './AdminStoreSettingsPanel';
@@ -52,6 +53,7 @@ import {
 
 type AdminSection =
   | 'orders'
+  | 'commandas'
   | 'history'
   | 'products'
   | 'settings'
@@ -1073,6 +1075,17 @@ export function AdminApp() {
           </button>
           <button
             className={`h-10 rounded px-4 text-sm font-semibold transition ${
+              adminSection === 'commandas'
+                ? 'bg-zinc-950 text-white'
+                : 'border border-zinc-300 bg-white text-zinc-800 hover:border-zinc-400'
+            }`}
+            type="button"
+            onClick={() => setAdminSection('commandas')}
+          >
+            Comandas
+          </button>
+          <button
+            className={`h-10 rounded px-4 text-sm font-semibold transition ${
               adminSection === 'history'
                 ? 'bg-zinc-950 text-white'
                 : 'border border-zinc-300 bg-white text-zinc-800 hover:border-zinc-400'
@@ -1121,6 +1134,7 @@ export function AdminApp() {
           ) : null}
         </div>
 
+        {adminSection === 'commandas' ? <AdminCommandasPanel /> : null}
         {adminSection === 'products' ? <AdminProductsPanel /> : null}
         {adminSection === 'settings' ? <AdminStoreSettingsPanel /> : null}
         {adminSection === 'monitoring' && isOwner ? (
