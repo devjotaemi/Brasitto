@@ -18,6 +18,7 @@ import {
 import type { FormEvent, MutableRefObject } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
+import { ComandaStatus, type Comanda } from '../../domain/comanda/Comanda';
 import type { Order } from '../../domain/order/Order';
 import { OrderStatus, OrderType } from '../../domain/order/Order';
 import {
@@ -34,6 +35,7 @@ import {
   useApplicationLockStatus,
 } from '../useApplicationLockStatus';
 import { AdminCommandasPanel } from './AdminCommandasPanel';
+import { calculateAdminDailyRevenue } from './adminRevenue';
 import { AdminMonitoringPanel } from './AdminMonitoringPanel';
 import { AdminProductsPanel } from './AdminProductsPanel';
 import { AdminStoreSettingsPanel } from './AdminStoreSettingsPanel';
@@ -70,6 +72,7 @@ const cancellationReasonOptions = [
 
 const {
   getApplicationLockStatusUseCase,
+  listCommandasUseCase,
   listOrdersUseCase,
   repositoryMode,
   setApplicationLockStatusUseCase,
@@ -271,6 +274,7 @@ const playNewOrderSound = (
 
 export function AdminApp() {
   const [orders, setOrders] = useState<Order[]>([]);
+  const [closedCommandas, setClosedCommandas] = useState<Comanda[]>([]);
   const ordersRef = useRef<Order[]>([]);
   const hasCompletedInitialLoadRef = useRef(false);
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -340,14 +344,10 @@ export function AdminApp() {
   );
   const historyOrders = orders.filter(isHistoryOrder);
   const today = new Date();
-  const todayFinishedOrders = historyOrders.filter(
-    (order) =>
-      order.status === OrderStatus.FINISHED &&
-      isSameLocalDate(order.finishedAt, today),
-  );
-  const todayRevenue = todayFinishedOrders.reduce(
-    (total, order) => total + order.total,
-    0,
+  const todayRevenue = calculateAdminDailyRevenue(
+    historyOrders,
+    closedCommandas,
+    today,
   );
   const filteredHistoryOrders = historyOrders.filter((order) => {
     const search = historySearch.trim().toLowerCase();
@@ -400,7 +400,8 @@ export function AdminApp() {
 
     try {
       const nextHistoryPage = options.historyPage ?? historyPage;
-      const [nextActiveOrders, nextHistoryOrders] = await Promise.all([
+        const [nextActiveOrders, nextHistoryOrders, nextClosedCommandas] =
+          await Promise.all([
         listOrdersUseCase.execute({
           statuses: [...activeOrderStatuses],
         }),
@@ -408,6 +409,9 @@ export function AdminApp() {
           statuses: HISTORY_STATUSES,
           limit: HISTORY_PAGE_SIZE + 1,
           offset: nextHistoryPage * HISTORY_PAGE_SIZE,
+        }),
+        listCommandasUseCase.execute({
+          statuses: [ComandaStatus.CLOSED],
         }),
       ]);
       const visibleHistoryOrders = nextHistoryOrders.slice(0, HISTORY_PAGE_SIZE);
@@ -422,6 +426,7 @@ export function AdminApp() {
       hasCompletedInitialLoadRef.current = true;
       setHasMoreHistory(nextHistoryOrders.length > HISTORY_PAGE_SIZE);
       setOrders(nextOrders);
+      setClosedCommandas(nextClosedCommandas);
 
       if (options.notifyNewOrders && newOrders.length > 0) {
         setNewOrderNoticeCount((currentCount) => currentCount + newOrders.length);
@@ -507,6 +512,7 @@ export function AdminApp() {
       hasCompletedInitialLoadRef.current = false;
       setIsLoading(false);
       setOrders([]);
+      setClosedCommandas([]);
     }
   }, [canAccessAdmin]);
 
@@ -598,6 +604,7 @@ export function AdminApp() {
     hasCompletedInitialLoadRef.current = false;
     setNewOrderNoticeCount(0);
     setOrders([]);
+    setClosedCommandas([]);
   }
 
   async function toggleApplicationLock() {
@@ -1052,13 +1059,14 @@ export function AdminApp() {
             <div>
               <p className="text-sm text-zinc-600">Faturado hoje</p>
               <p className="text-xl font-semibold text-zinc-950">
-                {formatCurrency(todayRevenue)}
-              </p>
+                  {formatCurrency(todayRevenue.totalRevenue)}
+                </p>
+              </div>
             </div>
-          </div>
-          <p className="text-sm text-zinc-600">
-            {todayFinishedOrders.length} pedidos finalizados hoje
-          </p>
+            <p className="text-sm text-zinc-600">
+             {todayRevenue.finishedOrdersCount} pedidos finalizados e{' '}
+             {todayRevenue.closedCommandasCount} comandas fechadas hoje
+            </p>
         </div>
 
         <div className="mb-5 flex flex-wrap gap-2">
@@ -1134,7 +1142,9 @@ export function AdminApp() {
           ) : null}
         </div>
 
-        {adminSection === 'commandas' ? <AdminCommandasPanel /> : null}
+        {adminSection === 'commandas' ? (
+          <AdminCommandasPanel onCommandasChanged={() => loadOrders()} />
+        ) : null}
         {adminSection === 'products' ? <AdminProductsPanel /> : null}
         {adminSection === 'settings' ? <AdminStoreSettingsPanel /> : null}
         {adminSection === 'monitoring' && isOwner ? (

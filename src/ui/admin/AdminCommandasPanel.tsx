@@ -34,6 +34,14 @@ const getComandaDisplayNumber = (comanda: Comanda): string =>
     ? `#${comanda.comandaNumber.toString().padStart(6, '0')}`
     : 'Sem numero';
 
+const formatDateTime = (date?: Date): string =>
+  date
+    ? new Intl.DateTimeFormat('pt-BR', {
+        dateStyle: 'short',
+        timeStyle: 'short',
+      }).format(date)
+    : '--';
+
 const getUserFacingErrorMessage = (
   error: unknown,
   fallbackMessage: string,
@@ -66,8 +74,15 @@ const getUserFacingErrorMessage = (
   return error.message;
 };
 
-export function AdminCommandasPanel() {
+type AdminCommandasPanelProps = {
+  onCommandasChanged?: () => void;
+};
+
+export function AdminCommandasPanel({
+  onCommandasChanged,
+}: AdminCommandasPanelProps) {
   const [commandas, setCommandas] = useState<Comanda[]>([]);
+  const [closedCommandas, setClosedCommandas] = useState<Comanda[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [label, setLabel] = useState('');
   const [notes, setNotes] = useState('');
@@ -88,14 +103,25 @@ export function AdminCommandasPanel() {
     setErrorMessage('');
 
     try {
-      const [nextCommandas, nextProducts] = await Promise.all([
-        listCommandasUseCase.execute({
-          statuses: [ComandaStatus.OPEN],
-        }),
-        listProductsUseCase.execute(),
-      ]);
+      const [nextCommandas, nextClosedCommandas, nextProducts] =
+        await Promise.all([
+          listCommandasUseCase.execute({
+            statuses: [ComandaStatus.OPEN],
+          }),
+          listCommandasUseCase.execute({
+            statuses: [ComandaStatus.CLOSED],
+          }),
+          listProductsUseCase.execute(),
+        ]);
 
       setCommandas(nextCommandas);
+      setClosedCommandas(
+        nextClosedCommandas.sort(
+          (firstComanda, secondComanda) =>
+            (secondComanda.closedAt?.getTime() ?? 0) -
+            (firstComanda.closedAt?.getTime() ?? 0),
+        ),
+      );
       setProducts(nextProducts);
     } catch (error) {
       setErrorMessage(
@@ -126,6 +152,7 @@ export function AdminCommandasPanel() {
       setLabel('');
       setNotes('');
       await loadCommandas();
+      onCommandasChanged?.();
     } catch (error) {
       setErrorMessage(
         getUserFacingErrorMessage(error, 'Nao foi possivel abrir a comanda.'),
@@ -188,6 +215,7 @@ export function AdminCommandasPanel() {
         },
       }));
       await loadCommandas();
+      onCommandasChanged?.();
     } catch (error) {
       setErrorMessage(
         getUserFacingErrorMessage(error, 'Nao foi possivel adicionar o item.'),
@@ -216,6 +244,7 @@ export function AdminCommandasPanel() {
       });
 
       await loadCommandas();
+      onCommandasChanged?.();
     } catch (error) {
       setErrorMessage(
         getUserFacingErrorMessage(error, 'Nao foi possivel cancelar o item.'),
@@ -240,6 +269,7 @@ export function AdminCommandasPanel() {
     try {
       await closeComandaUseCase.execute(comanda.id);
       await loadCommandas();
+      onCommandasChanged?.();
     } catch (error) {
       setErrorMessage(
         getUserFacingErrorMessage(error, 'Nao foi possivel fechar a comanda.'),
@@ -497,6 +527,104 @@ export function AdminCommandasPanel() {
               </article>
             );
           })}
+        </div>
+
+        <div className="mt-8">
+          <h2 className="mb-4 text-lg font-semibold text-zinc-950">
+            Historico de comandas
+          </h2>
+
+          {!isLoading && closedCommandas.length === 0 ? (
+            <div className="rounded border border-zinc-200 bg-white p-4 text-sm text-zinc-600 shadow-sm">
+              Nenhuma comanda fechada.
+            </div>
+          ) : null}
+
+          <div className="grid gap-3">
+            {closedCommandas.map((comanda) => {
+              const activeItems = comanda.items.filter(
+                (item) => !item.canceledAt,
+              );
+              const canceledItems = comanda.items.filter(
+                (item) => item.canceledAt,
+              );
+
+              return (
+                <article
+                  className="rounded border border-zinc-200 bg-white p-4 text-sm shadow-sm"
+                  key={comanda.id}
+                >
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="text-base font-semibold text-zinc-950">
+                          {comanda.label}
+                        </h3>
+                        <span className="rounded bg-zinc-100 px-2 py-1 text-xs font-medium text-zinc-700">
+                          {getComandaDisplayNumber(comanda)}
+                        </span>
+                        <span className="rounded bg-zinc-100 px-2 py-1 text-xs font-medium text-zinc-700">
+                          Fechada
+                        </span>
+                      </div>
+                      <p className="mt-2 text-zinc-600">
+                        Aberta em {formatDateTime(comanda.openedAt)}
+                      </p>
+                      <p className="mt-1 text-zinc-600">
+                        Fechada em {formatDateTime(comanda.closedAt)}
+                      </p>
+                    </div>
+
+                    <div className="text-left sm:text-right">
+                      <p className="text-zinc-600">Total final</p>
+                      <p className="text-xl font-semibold text-zinc-950">
+                        {formatCurrency(comanda.total)}
+                      </p>
+                    </div>
+                  </div>
+
+                  {activeItems.length > 0 ? (
+                    <div className="mt-4 divide-y divide-zinc-100 border-t border-zinc-100 pt-1">
+                      {activeItems.map((item) => (
+                        <div
+                          className="grid grid-cols-[1fr_auto] gap-3 py-2"
+                          key={item.id}
+                        >
+                          <span className="text-zinc-700">
+                            {item.quantity} x {item.product.name}
+                          </span>
+                          <strong className="font-semibold text-zinc-950">
+                            {formatCurrency(item.totalPrice)}
+                          </strong>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
+
+                  {canceledItems.length > 0 ? (
+                    <details className="mt-3 rounded border border-zinc-200 bg-zinc-50 p-3 text-zinc-600">
+                      <summary className="cursor-pointer font-semibold text-zinc-800">
+                        {canceledItems.length} itens cancelados
+                      </summary>
+                      <div className="mt-2 divide-y divide-zinc-200">
+                        {canceledItems.map((item) => (
+                          <div
+                            className="flex items-center justify-between gap-3 py-2"
+                            key={item.id}
+                          >
+                            <span>
+                              {item.quantity} x {item.product.name}
+                            </span>
+                            <span>{formatCurrency(item.totalPrice)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </details>
+                  ) : null}
+                </article>
+              );
+            })}
+          </div>
         </div>
       </section>
     </div>

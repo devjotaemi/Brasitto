@@ -152,6 +152,32 @@ Verificacao executada:
 - `npm.cmd run build`: passou; Vite gerou `dist/`.
 - O build manteve avisos conhecidos do `lucide-react` e chunk acima de 500 kB.
 
+### 2026-07-08 - Historico de comandas e faturamento
+
+Plano detalhado antes da implementacao:
+
+1. Adicionar historico de comandas fechadas dentro da aba `Comandas`.
+2. Exibir numero, identificacao, abertura, fechamento, itens, itens cancelados e total final.
+3. Atualizar faturamento do topo do admin para somar pedidos finalizados e comandas fechadas do dia.
+4. Fazer o painel de comandas avisar o admin principal apos mudancas para atualizar o faturamento.
+5. Adicionar teste unitario para o calculo de faturamento.
+6. Rodar testes e build ao final.
+
+Alteracoes realizadas:
+
+- `AdminCommandasPanel` agora carrega comandas abertas e comandas fechadas.
+- A aba `Comandas` exibe uma secao `Historico de comandas`.
+- O fechamento de comanda atualiza o resumo de faturamento do admin.
+- Criado `src/ui/admin/adminRevenue.ts` para calcular faturamento diario de forma testavel.
+- O card `Faturado hoje` agora soma pedidos finalizados e comandas fechadas no dia.
+- Criado teste `tests/ui/adminRevenue.test.ts`.
+
+Verificacao executada:
+
+- `npm.cmd run test`: passou com 30 arquivos de teste e 118 testes.
+- `npm.cmd run build`: passou; Vite gerou `dist/`.
+- O build manteve avisos conhecidos do `lucide-react` e chunk acima de 500 kB.
+
 ### 2026-07-08 - Regra de aprovacao antes de features
 
 Alteracoes realizadas:
