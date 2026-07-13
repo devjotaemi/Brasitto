@@ -10,6 +10,10 @@ import {
   type Product,
   type ProductCategory,
 } from '../../domain/product/Product';
+import {
+  isSupabaseConfigured,
+  supabaseClient,
+} from '../../infrastructure/supabase/supabaseClient';
 import { createCustomerDependencies } from '../customer/customerDependencies';
 
 type AddItemForm = {
@@ -187,6 +191,47 @@ export function AdminCommandasPanel({
 
   useEffect(() => {
     loadCommandas();
+  }, []);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured || supabaseClient === null) {
+      return;
+    }
+
+    const realtimeClient = supabaseClient;
+    const channel = realtimeClient
+      .channel('admin-commandas')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'comandas',
+        },
+        () => {
+          void loadCommandas();
+        },
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'comanda_items',
+        },
+        () => {
+          void loadCommandas();
+        },
+      )
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          void loadCommandas();
+        }
+      });
+
+    return () => {
+      void realtimeClient.removeChannel(channel);
+    };
   }, []);
 
   async function selectTable(tableNumber: number) {
