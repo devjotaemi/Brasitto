@@ -16,6 +16,7 @@ import { Order, OrderStatus, OrderType } from '../../domain/order/Order';
 import {
   PRODUCT_CATEGORIES,
   Product,
+  type ProductCategory,
 } from '../../domain/product/Product';
 import {
   isSupabaseConfigured,
@@ -186,6 +187,8 @@ export const getCustomerUserFacingErrorMessage = (
 
 export function CustomerApp() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [selectedProductCategory, setSelectedProductCategory] =
+    useState<ProductCategory>('Espetos');
   const [cartLines, setCartLines] = useState<CartLine[]>([]);
   const [orderType, setOrderType] = useState<OrderType>(OrderType.PICKUP);
   const [form, setForm] = useState<CustomerForm>({
@@ -370,6 +373,13 @@ export function CustomerApp() {
   const productsByCategory = useMemo(
     () => groupProductsByCategory(products),
     [products],
+  );
+  const selectedCategoryProducts = useMemo(
+    () =>
+      productsByCategory.find(
+        ({ category }) => category === selectedProductCategory,
+      )?.products ?? [],
+    [productsByCategory, selectedProductCategory],
   );
   const canCancelTrackedOrder =
     trackedOrder?.status === OrderStatus.PENDING ||
@@ -703,103 +713,123 @@ export function CustomerApp() {
               </div>
             ) : null}
 
-            {!isLoadingProducts && !productErrorMessage && products.length > 0
-              ? productsByCategory.map(({ category, products }) => (
-                  <section
-                    key={category}
-                    aria-labelledby={`category-${category}`}
-                    className="grid gap-3"
-                  >
-                    <div className="flex items-center justify-between border-b border-zinc-200 pb-2">
-                      <h3
-                        id={`category-${category}`}
-                        className="text-base font-semibold text-zinc-950"
+            {!isLoadingProducts && !productErrorMessage && products.length > 0 ? (
+              <>
+                <div
+                  aria-label="Categorias do cardapio"
+                  className="grid grid-cols-3 gap-2"
+                  role="tablist"
+                >
+                  {productsByCategory.map(({ category, products }) => {
+                    const isSelected = selectedProductCategory === category;
+
+                    return (
+                      <button
+                        key={category}
+                        aria-controls={`category-panel-${category}`}
+                        aria-selected={isSelected}
+                        className={`flex min-h-11 items-center justify-center rounded border px-2 text-sm font-semibold transition ${
+                          isSelected
+                            ? 'border-rose-700 bg-rose-50 text-rose-800'
+                            : 'border-zinc-200 bg-white text-zinc-700 hover:border-zinc-300'
+                        }`}
+                        id={`category-tab-${category}`}
+                        role="tab"
+                        type="button"
+                        onClick={() => setSelectedProductCategory(category)}
                       >
-                        {category}
-                      </h3>
-                      <span className="text-xs font-medium text-zinc-500">
-                        {products.length} itens
-                      </span>
+                        <span>{category}</span>
+                        <span className="ml-1 text-xs font-medium opacity-70">
+                          {products.length}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <section
+                  aria-labelledby={`category-tab-${selectedProductCategory}`}
+                  className="grid gap-3"
+                  id={`category-panel-${selectedProductCategory}`}
+                  role="tabpanel"
+                >
+                  {selectedCategoryProducts.length === 0 ? (
+                    <div className="rounded border border-dashed border-zinc-300 bg-zinc-50 p-4 text-sm text-zinc-600">
+                      Nenhum item ativo nesta categoria.
                     </div>
+                  ) : null}
 
-                    {products.length === 0 ? (
-                      <div className="rounded border border-dashed border-zinc-300 bg-zinc-50 p-4 text-sm text-zinc-600">
-                        Nenhum item ativo nesta categoria.
-                      </div>
-                    ) : null}
+                  {selectedCategoryProducts.map((product) => {
+                    const quantity =
+                      cartLines.find((line) => line.product.id === product.id)
+                        ?.quantity ?? 0;
 
-                    {products.map((product) => {
-                      const quantity =
-                        cartLines.find(
-                          (line) => line.product.id === product.id,
-                        )?.quantity ?? 0;
-
-                      return (
-                        <article
-                          key={product.id}
-                          className="grid gap-4 rounded border border-zinc-200 bg-white p-4 shadow-sm sm:grid-cols-[160px_1fr_auto]"
-                        >
-                          <div className="aspect-[4/3] overflow-hidden rounded bg-zinc-100">
-                            {product.imageUrl ? (
-                              <img
-                                alt={product.name}
-                                className="h-full w-full object-cover"
-                                loading="lazy"
-                                src={product.imageUrl}
-                              />
-                            ) : (
-                              <div className="grid h-full place-items-center px-3 text-center text-xs font-medium text-zinc-500">
-                                Sem foto
-                              </div>
-                            )}
-                          </div>
-
-                          <div>
-                            <div className="flex flex-wrap items-center gap-2">
-                              <h4 className="text-base font-semibold text-zinc-950">
-                                {product.name}
-                              </h4>
-                              <span className="rounded bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-800">
-                                Disponivel
-                              </span>
+                    return (
+                      <article
+                        key={product.id}
+                        className="grid gap-4 rounded border border-zinc-200 bg-white p-4 shadow-sm sm:grid-cols-[160px_1fr_auto]"
+                      >
+                        <div className="aspect-[4/3] overflow-hidden rounded bg-zinc-100">
+                          {product.imageUrl ? (
+                            <img
+                              alt={product.name}
+                              className="h-full w-full object-cover"
+                              loading="lazy"
+                              src={product.imageUrl}
+                            />
+                          ) : (
+                            <div className="grid h-full place-items-center px-3 text-center text-xs font-medium text-zinc-500">
+                              Sem foto
                             </div>
-                            <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-600">
-                              {product.description}
-                            </p>
-                            <p className="mt-3 text-base font-semibold text-zinc-950">
-                              {formatCurrency(product.price)}
-                            </p>
-                          </div>
+                          )}
+                        </div>
 
-                          <div className="flex h-11 items-center justify-between gap-2 sm:justify-end">
-                            <button
-                              aria-label={`Diminuir ${product.name}`}
-                              className="grid h-10 w-10 place-items-center rounded border border-zinc-300 bg-white text-zinc-700 transition hover:border-zinc-400 disabled:cursor-not-allowed disabled:opacity-40"
-                              disabled={quantity === 0}
-                              type="button"
-                              onClick={() => decreaseProduct(product)}
-                            >
-                              <Minus className="h-4 w-4" />
-                            </button>
-                            <span className="grid h-10 w-10 place-items-center text-sm font-semibold text-zinc-950">
-                              {quantity}
+                        <div>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <h3 className="text-base font-semibold text-zinc-950">
+                              {product.name}
+                            </h3>
+                            <span className="rounded bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-800">
+                              Disponivel
                             </span>
-                            <button
-                              aria-label={`Adicionar ${product.name}`}
-                              className="grid h-10 w-10 place-items-center rounded bg-rose-700 text-white transition hover:bg-rose-800"
-                              disabled={!storeSettings.storeOpen}
-                              type="button"
-                              onClick={() => addProduct(product)}
-                            >
-                              <Plus className="h-4 w-4" />
-                            </button>
                           </div>
-                        </article>
-                      );
-                    })}
-                  </section>
-                ))
-              : null}
+                          <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-600">
+                            {product.description}
+                          </p>
+                          <p className="mt-3 text-base font-semibold text-zinc-950">
+                            {formatCurrency(product.price)}
+                          </p>
+                        </div>
+
+                        <div className="flex h-11 items-center justify-between gap-2 sm:justify-end">
+                          <button
+                            aria-label={`Diminuir ${product.name}`}
+                            className="grid h-10 w-10 place-items-center rounded border border-zinc-300 bg-white text-zinc-700 transition hover:border-zinc-400 disabled:cursor-not-allowed disabled:opacity-40"
+                            disabled={quantity === 0}
+                            type="button"
+                            onClick={() => decreaseProduct(product)}
+                          >
+                            <Minus className="h-4 w-4" />
+                          </button>
+                          <span className="grid h-10 w-10 place-items-center text-sm font-semibold text-zinc-950">
+                            {quantity}
+                          </span>
+                          <button
+                            aria-label={`Adicionar ${product.name}`}
+                            className="grid h-10 w-10 place-items-center rounded bg-rose-700 text-white transition hover:bg-rose-800"
+                            disabled={!storeSettings.storeOpen}
+                            type="button"
+                            onClick={() => addProduct(product)}
+                          >
+                            <Plus className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </article>
+                    );
+                  })}
+                </section>
+              </>
+            ) : null}
           </div>
         </section>
 
