@@ -1,7 +1,11 @@
 import { Edit3, PackagePlus, RefreshCw, Save } from 'lucide-react';
 import type { ChangeEvent, FormEvent } from 'react';
 import { useEffect, useState } from 'react';
-import type { Product } from '../../domain/product/Product';
+import {
+  PRODUCT_CATEGORIES,
+  type Product,
+  type ProductCategory,
+} from '../../domain/product/Product';
 import {
   isSupabaseConfigured,
   supabaseClient,
@@ -13,6 +17,7 @@ type ProductForm = {
   name: string;
   description: string;
   price: string;
+  category: ProductCategory;
   imageUrl: string;
   active: boolean;
 };
@@ -21,6 +26,7 @@ const emptyForm: ProductForm = {
   name: '',
   description: '',
   price: '',
+  category: 'Espetos',
   imageUrl: '',
   active: true,
 };
@@ -40,6 +46,7 @@ const toForm = (product: Product): ProductForm => ({
   name: product.name,
   description: product.description,
   price: String(product.price),
+  category: product.category,
   imageUrl: product.imageUrl ?? '',
   active: product.active,
 });
@@ -103,11 +110,15 @@ const getUserFacingErrorMessage = (
   }
 
   if (error.message.includes('Product name is required')) {
-    return 'Informe o nome do espeto.';
+    return 'Informe o nome do produto.';
   }
 
   if (error.message.includes('Product description is required')) {
-    return 'Informe a descricao do espeto.';
+    return 'Informe a descricao do produto.';
+  }
+
+  if (error.message.includes('Product category is invalid')) {
+    return 'Selecione uma categoria valida.';
   }
 
   if (error.message.includes('Product image URL must start')) {
@@ -246,6 +257,7 @@ export function AdminProductsPanel() {
         name,
         description,
         price,
+        category: form.category,
         imageUrl,
         active: form.active,
       });
@@ -273,7 +285,7 @@ export function AdminProductsPanel() {
         <div className="mb-4 flex items-center gap-2">
           <PackagePlus className="h-5 w-5 text-rose-700" />
           <h2 className="text-lg font-semibold text-zinc-950">
-            {form.id ? 'Editar espeto' : 'Novo espeto'}
+            {form.id ? 'Editar produto' : 'Novo produto'}
           </h2>
         </div>
 
@@ -314,7 +326,25 @@ export function AdminProductsPanel() {
           </label>
 
           <label className="grid gap-1 text-sm font-medium text-zinc-700">
-            Foto do espeto
+            Categoria
+            <select
+              className="h-10 rounded border border-zinc-300 bg-white px-3 text-sm text-zinc-950 outline-none transition focus:border-rose-700"
+              required
+              value={form.category}
+              onChange={(event) =>
+                updateForm('category', event.target.value as ProductCategory)
+              }
+            >
+              {PRODUCT_CATEGORIES.map((category) => (
+                <option key={category} value={category}>
+                  {category}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="grid gap-1 text-sm font-medium text-zinc-700">
+            Foto do produto
             <input
               accept="image/*"
               className="rounded border border-zinc-300 px-3 py-2 text-sm text-zinc-950 file:mr-3 file:rounded file:border-0 file:bg-zinc-100 file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-zinc-800"
@@ -327,7 +357,7 @@ export function AdminProductsPanel() {
           {imagePreviewUrl || form.imageUrl ? (
             <div className="overflow-hidden rounded border border-zinc-200 bg-zinc-50">
               <img
-                alt="Previa da foto do espeto"
+                alt="Previa da foto do produto"
                 className="aspect-[4/3] w-full object-cover"
                 src={imagePreviewUrl || form.imageUrl}
               />
@@ -429,6 +459,9 @@ export function AdminProductsPanel() {
                     }`}
                   >
                     {product.active ? 'Ativo' : 'Inativo'}
+                  </span>
+                  <span className="rounded bg-zinc-100 px-2 py-1 text-xs font-medium text-zinc-700">
+                    {product.category}
                   </span>
                 </div>
                 <p className="mt-2 text-sm leading-6 text-zinc-600">

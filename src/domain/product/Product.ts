@@ -4,8 +4,18 @@ export type ProductProps = {
   description: string;
   price: number;
   active: boolean;
+  category?: ProductCategory;
   imageUrl?: string;
 };
+
+export const PRODUCT_CATEGORIES = ['Espetos', 'Bebidas', 'Doces'] as const;
+
+export type ProductCategory = (typeof PRODUCT_CATEGORIES)[number];
+
+export const DEFAULT_PRODUCT_CATEGORY: ProductCategory = 'Espetos';
+
+export const isProductCategory = (value: string): value is ProductCategory =>
+  PRODUCT_CATEGORIES.includes(value as ProductCategory);
 
 export class Product {
   private constructor(
@@ -14,6 +24,7 @@ export class Product {
     public readonly description: string,
     public readonly price: number,
     public readonly active: boolean,
+    public readonly category: ProductCategory,
     public readonly imageUrl: string | undefined,
   ) {}
 
@@ -34,6 +45,12 @@ export class Product {
       throw new Error('Product price must be greater than zero');
     }
 
+    const category = props.category ?? DEFAULT_PRODUCT_CATEGORY;
+
+    if (!isProductCategory(category)) {
+      throw new Error('Product category is invalid');
+    }
+
     const imageUrl = props.imageUrl?.trim() || undefined;
 
     if (imageUrl && !/^https?:\/\//.test(imageUrl)) {
@@ -50,6 +67,7 @@ export class Product {
       props.description,
       props.price,
       props.active,
+      category,
       imageUrl,
     );
   }

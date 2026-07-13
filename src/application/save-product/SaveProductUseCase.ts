@@ -1,5 +1,5 @@
 import type { ProductRepository } from '../repositories/ProductRepository';
-import { Product } from '../../domain/product/Product';
+import { Product, type ProductCategory } from '../../domain/product/Product';
 
 export type SaveProductInput = {
   id?: string;
@@ -7,6 +7,7 @@ export type SaveProductInput = {
   description: string;
   price: number;
   active: boolean;
+  category?: ProductCategory;
   imageUrl?: string;
 };
 
@@ -20,6 +21,7 @@ export class SaveProductUseCase {
       description: input.description,
       price: input.price,
       active: input.active,
+      category: input.category,
       imageUrl: input.imageUrl,
     });
 

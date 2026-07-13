@@ -340,8 +340,6 @@ const localProducts = [
     description: 'Espeto bovino temperado e assado na brasa.',
     price: 12,
     active: true,
-    imageUrl:
-      'https://images.unsplash.com/photo-1529692236671-f1f6cf9683ba?auto=format&fit=crop&w=900&q=80',
   }),
   Product.create({
     id: 'chicken-skewer',
@@ -349,8 +347,6 @@ const localProducts = [
     description: 'Espeto de frango temperado e assado na brasa.',
     price: 10,
     active: true,
-    imageUrl:
-      'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=900&q=80',
   }),
   Product.create({
     id: 'cheese-skewer',
@@ -358,8 +354,6 @@ const localProducts = [
     description: 'Queijo coalho grelhado na brasa.',
     price: 9,
     active: true,
-    imageUrl:
-      'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=900&q=80',
   }),
 ];
 

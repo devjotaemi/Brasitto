@@ -1,5 +1,5 @@
 import type { ProductRepository } from '../../application/repositories/ProductRepository';
-import { Product } from '../../domain/product/Product';
+import { Product, isProductCategory } from '../../domain/product/Product';
 
 type SupabaseQueryResult<T = unknown> = {
   data?: T;
@@ -16,6 +16,7 @@ type ProductRow = {
   description: string;
   price: number;
   active: boolean;
+  category?: string | null;
   image_url?: string | null;
 };
 
@@ -40,6 +41,10 @@ export class SupabaseProductRepository implements ProductRepository {
         description: row.description,
         price: row.price,
         active: row.active,
+        category:
+          row.category && isProductCategory(row.category)
+            ? row.category
+            : undefined,
         imageUrl: row.image_url ?? undefined,
       }),
     );
@@ -56,6 +61,7 @@ export class SupabaseProductRepository implements ProductRepository {
       description: product.description,
       price: product.price,
       active: product.active,
+      category: product.category,
       image_url: product.imageUrl ?? null,
     });
 

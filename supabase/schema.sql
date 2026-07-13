@@ -3,6 +3,7 @@ create table if not exists products (
   name text not null,
   description text not null,
   price numeric(10, 2) not null check (price > 0),
+  category text not null default 'Espetos' check (category in ('Espetos', 'Bebidas', 'Doces')),
   image_url text,
   active boolean not null default true,
   created_at timestamptz not null default now()
@@ -134,6 +135,20 @@ add column if not exists cancellation_reason text;
 alter table products
 add column if not exists image_url text;
 
+alter table products
+add column if not exists category text;
+
+update products
+set category = 'Espetos'
+where category is null
+  or category = '';
+
+alter table products
+alter column category set default 'Espetos';
+
+alter table products
+alter column category set not null;
+
 alter table comandas
 add column if not exists comanda_number integer;
 
@@ -170,6 +185,17 @@ begin
     alter table products
     add constraint products_image_url_max_length
     check (image_url is null or char_length(image_url) <= 1000) not valid;
+  end if;
+
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'products_category_allowed'
+      and conrelid = 'products'::regclass
+  ) then
+    alter table products
+    add constraint products_category_allowed
+    check (category in ('Espetos', 'Bebidas', 'Doces')) not valid;
   end if;
 
   if not exists (

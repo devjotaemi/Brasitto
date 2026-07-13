@@ -39,6 +39,7 @@ describe('SupabaseProductRepository', () => {
         description: 'Espeto bovino assado na brasa',
         price: 40,
         active: true,
+        category: 'Espetos',
         image_url: 'https://example.com/espeto-carne.jpg',
       },
       {
@@ -47,6 +48,7 @@ describe('SupabaseProductRepository', () => {
         description: 'Espeto de frango temperado',
         price: 35,
         active: false,
+        category: 'Bebidas',
       },
     ]);
     const repository = new SupabaseProductRepository(client);
@@ -58,8 +60,10 @@ describe('SupabaseProductRepository', () => {
     expect(products[0].name).toBe('Espeto de Carne');
     expect(products[0].price).toBe(40);
     expect(products[0].active).toBe(true);
+    expect(products[0].category).toBe('Espetos');
     expect(products[0].imageUrl).toBe('https://example.com/espeto-carne.jpg');
     expect(products[1].active).toBe(false);
+    expect(products[1].category).toBe('Bebidas');
   });
 
   it('deve falhar quando Supabase retornar erro', async () => {
@@ -84,6 +88,7 @@ describe('SupabaseProductRepository', () => {
       description: 'Espeto bovino assado na brasa',
       price: 40,
       active: true,
+      category: 'Espetos',
       imageUrl: 'https://example.com/espeto-carne.jpg',
     });
 
@@ -96,6 +101,7 @@ describe('SupabaseProductRepository', () => {
         description: 'Espeto bovino assado na brasa',
         price: 40,
         active: true,
+        category: 'Espetos',
         image_url: 'https://example.com/espeto-carne.jpg',
       },
     ]);

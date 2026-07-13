@@ -16,10 +16,11 @@ describe('Product', () => {
     expect(product.description).toBe('Espeto bovino assado na brasa');
     expect(product.price).toBe(40);
     expect(product.active).toBe(true);
+    expect(product.category).toBe('Espetos');
     expect(product.imageUrl).toBe('https://example.com/espeto.jpg');
   });
 
-  it('deve permitir produto sem foto', () => {
+  it('deve permitir produto sem foto e usar Espetos como categoria padrao', () => {
     const product = Product.create({
       name: 'Espeto de Carne',
       description: 'Espeto bovino assado na brasa',
@@ -28,6 +29,31 @@ describe('Product', () => {
     });
 
     expect(product.imageUrl).toBeUndefined();
+    expect(product.category).toBe('Espetos');
+  });
+
+  it('deve permitir produto nas categorias disponiveis', () => {
+    const product = Product.create({
+      name: 'Refrigerante',
+      description: 'Lata 350ml',
+      price: 7,
+      active: true,
+      category: 'Bebidas',
+    });
+
+    expect(product.category).toBe('Bebidas');
+  });
+
+  it('nao deve permitir categoria invalida', () => {
+    expect(() =>
+      Product.create({
+        name: 'Produto invalido',
+        description: 'Categoria invalida',
+        price: 7,
+        active: true,
+        category: 'Salgados' as never,
+      }),
+    ).toThrow('Product category is invalid');
   });
 
   it('nao deve permitir foto com URL invalida', () => {

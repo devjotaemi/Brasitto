@@ -26,10 +26,12 @@ describe('SaveProductUseCase', () => {
       description: 'Espeto bovino assado na brasa',
       price: 40,
       active: true,
+      category: 'Espetos',
       imageUrl: 'https://example.com/espeto.jpg',
     });
 
     expect(product.name).toBe('Espeto de Carne');
+    expect(product.category).toBe('Espetos');
     expect(product.imageUrl).toBe('https://example.com/espeto.jpg');
     expect(repository.products).toEqual([product]);
   });
