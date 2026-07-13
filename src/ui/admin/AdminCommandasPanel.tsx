@@ -5,7 +5,11 @@ import {
   ComandaStatus,
   type ComandaItem,
 } from '../../domain/comanda/Comanda';
-import type { Product } from '../../domain/product/Product';
+import {
+  PRODUCT_CATEGORIES,
+  type Product,
+  type ProductCategory,
+} from '../../domain/product/Product';
 import { createCustomerDependencies } from '../customer/customerDependencies';
 
 type AddItemForm = {
@@ -93,6 +97,8 @@ export function AdminCommandasPanel({
   const [openCommandas, setOpenCommandas] = useState<Comanda[]>([]);
   const [closedCommandas, setClosedCommandas] = useState<Comanda[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [selectedProductCategory, setSelectedProductCategory] =
+    useState<ProductCategory>('Espetos');
   const [selectedTableNumber, setSelectedTableNumber] = useState<number | null>(
     null,
   );
@@ -106,7 +112,27 @@ export function AdminCommandasPanel({
   );
   const [errorMessage, setErrorMessage] = useState('');
 
-  const activeProducts = products.filter((product) => product.active);
+  const activeProducts = useMemo(
+    () => products.filter((product) => product.active),
+    [products],
+  );
+  const productsByCategory = useMemo(
+    () =>
+      PRODUCT_CATEGORIES.map((category) => ({
+        category,
+        products: activeProducts.filter(
+          (product) => product.category === category,
+        ),
+      })),
+    [activeProducts],
+  );
+  const selectedCategoryProducts = useMemo(
+    () =>
+      productsByCategory.find(
+        ({ category }) => category === selectedProductCategory,
+      )?.products ?? [],
+    [productsByCategory, selectedProductCategory],
+  );
   const openComandaByTable = useMemo(
     () => {
       const entries: Array<[number, Comanda]> = openCommandas.flatMap(
@@ -220,11 +246,16 @@ export function AdminCommandasPanel({
     }
 
     const form = addItemForms[comanda.id] ?? {
-      productId: activeProducts[0]?.id ?? '',
+      productId: selectedCategoryProducts[0]?.id ?? '',
       quantity: '1',
     };
-    const product = activeProducts.find(
+    const productId = selectedCategoryProducts.some(
       (currentProduct) => currentProduct.id === form.productId,
+    )
+      ? form.productId
+      : selectedCategoryProducts[0]?.id ?? '';
+    const product = selectedCategoryProducts.find(
+      (currentProduct) => currentProduct.id === productId,
     );
     const quantity = Number(form.quantity);
 
@@ -246,7 +277,7 @@ export function AdminCommandasPanel({
       setAddItemForms((currentForms) => ({
         ...currentForms,
         [comanda.id as string]: {
-          productId: form.productId,
+          productId,
           quantity: '1',
         },
       }));
@@ -468,63 +499,111 @@ export function AdminCommandasPanel({
               </div>
             </div>
 
-            <div className="grid gap-3 border-b border-zinc-100 py-4 lg:grid-cols-[1fr_90px_auto]">
-              <select
-                className="h-10 rounded border border-zinc-300 px-3 text-sm text-zinc-950 outline-none transition focus:border-rose-700"
-                value={
-                  selectedComanda.id
-                    ? addItemForms[selectedComanda.id]?.productId ??
-                      activeProducts[0]?.id ??
-                      ''
-                    : ''
-                }
-                onChange={(event) =>
-                  selectedComanda.id
-                    ? updateAddItemForm(
-                        selectedComanda.id,
-                        'productId',
-                        event.target.value,
-                      )
-                    : undefined
-                }
+            <div className="grid gap-3 border-b border-zinc-100 py-4">
+              <div
+                aria-label="Categorias para lancar na comanda"
+                className="grid grid-cols-3 gap-2"
+                role="tablist"
               >
-                {activeProducts.map((product) => (
-                  <option key={product.id} value={product.id}>
-                    {product.name} - {formatCurrency(product.price)}
-                  </option>
-                ))}
-              </select>
-              <input
-                className="h-10 rounded border border-zinc-300 px-3 text-sm text-zinc-950 outline-none transition focus:border-rose-700"
-                min="1"
-                type="number"
-                value={
-                  selectedComanda.id
-                    ? addItemForms[selectedComanda.id]?.quantity ?? '1'
-                    : '1'
-                }
-                onChange={(event) =>
-                  selectedComanda.id
-                    ? updateAddItemForm(
-                        selectedComanda.id,
-                        'quantity',
-                        event.target.value,
-                      )
-                    : undefined
-                }
-              />
-              <button
-                className="flex h-10 items-center justify-center gap-2 rounded bg-rose-700 px-4 text-sm font-semibold text-white transition hover:bg-rose-800 disabled:cursor-not-allowed disabled:opacity-50"
-                disabled={
-                  !activeProducts.length ||
-                  updatingComandaId === selectedComanda.id
-                }
-                type="button"
-                onClick={() => addItem(selectedComanda)}
+                {productsByCategory.map(({ category, products }) => {
+                  const isSelected = selectedProductCategory === category;
+
+                  return (
+                    <button
+                      key={category}
+                      aria-controls={`comanda-category-panel-${category}`}
+                      aria-selected={isSelected}
+                      className={`flex min-h-10 items-center justify-center rounded border px-2 text-sm font-semibold transition ${
+                        isSelected
+                          ? 'border-rose-700 bg-rose-50 text-rose-800'
+                          : 'border-zinc-200 bg-white text-zinc-700 hover:border-zinc-300'
+                      }`}
+                      id={`comanda-category-tab-${category}`}
+                      role="tab"
+                      type="button"
+                      onClick={() => setSelectedProductCategory(category)}
+                    >
+                      <span>{category}</span>
+                      <span className="ml-1 text-xs font-medium opacity-70">
+                        {products.length}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div
+                aria-labelledby={`comanda-category-tab-${selectedProductCategory}`}
+                className="grid gap-3 lg:grid-cols-[1fr_90px_auto]"
+                id={`comanda-category-panel-${selectedProductCategory}`}
+                role="tabpanel"
               >
-                <Plus className="h-4 w-4" />
-                Adicionar
-              </button>
+                <select
+                  className="h-10 rounded border border-zinc-300 px-3 text-sm text-zinc-950 outline-none transition focus:border-rose-700 disabled:cursor-not-allowed disabled:bg-zinc-100 disabled:text-zinc-500"
+                  disabled={!selectedCategoryProducts.length}
+                  value={
+                    selectedComanda.id
+                      ? selectedCategoryProducts.some(
+                          (product) =>
+                            product.id ===
+                            addItemForms[selectedComanda.id as string]
+                              ?.productId,
+                        )
+                        ? addItemForms[selectedComanda.id]?.productId
+                        : selectedCategoryProducts[0]?.id ?? ''
+                      : ''
+                  }
+                  onChange={(event) =>
+                    selectedComanda.id
+                      ? updateAddItemForm(
+                          selectedComanda.id,
+                          'productId',
+                          event.target.value,
+                        )
+                      : undefined
+                  }
+                >
+                  {selectedCategoryProducts.length === 0 ? (
+                    <option value="">Nenhum produto nesta categoria</option>
+                  ) : null}
+                  {selectedCategoryProducts.map((product) => (
+                    <option key={product.id} value={product.id}>
+                      {product.name} - {formatCurrency(product.price)}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  className="h-10 rounded border border-zinc-300 px-3 text-sm text-zinc-950 outline-none transition focus:border-rose-700"
+                  min="1"
+                  type="number"
+                  value={
+                    selectedComanda.id
+                      ? addItemForms[selectedComanda.id]?.quantity ?? '1'
+                      : '1'
+                  }
+                  onChange={(event) =>
+                    selectedComanda.id
+                      ? updateAddItemForm(
+                          selectedComanda.id,
+                          'quantity',
+                          event.target.value,
+                        )
+                      : undefined
+                  }
+                />
+                <button
+                  className="flex h-10 items-center justify-center gap-2 rounded bg-rose-700 px-4 text-sm font-semibold text-white transition hover:bg-rose-800 disabled:cursor-not-allowed disabled:opacity-50"
+                  disabled={
+                    !selectedCategoryProducts.length ||
+                    updatingComandaId === selectedComanda.id
+                  }
+                  type="button"
+                  onClick={() => addItem(selectedComanda)}
+                >
+                  <Plus className="h-4 w-4" />
+                  Adicionar
+                </button>
+              </div>
             </div>
 
             {renderComandaItems(selectedComanda, true)}
