@@ -8,6 +8,7 @@ import {
   LogOut,
   Mail,
   PackageCheck,
+  Power,
   RefreshCw,
   Send,
   Truck,
@@ -21,6 +22,7 @@ import type { Session } from '@supabase/supabase-js';
 import { ComandaStatus, type Comanda } from '../../domain/comanda/Comanda';
 import type { Order } from '../../domain/order/Order';
 import { OrderStatus, OrderType } from '../../domain/order/Order';
+import type { StoreSettings } from '../../application/repositories/StoreSettingsRepository';
 import {
   isSupabaseConfigured,
   supabaseClient,
@@ -72,10 +74,12 @@ const cancellationReasonOptions = [
 
 const {
   getApplicationLockStatusUseCase,
+  getStoreSettingsUseCase,
   listCommandasUseCase,
   listOrdersUseCase,
   repositoryMode,
   setApplicationLockStatusUseCase,
+  setStoreSettingsUseCase,
   updateOrderEstimateUseCase,
   updateOrderStatusUseCase,
 } = createCustomerDependencies();
@@ -334,6 +338,11 @@ export function AdminApp() {
   );
   const [isUpdatingApplicationLock, setIsUpdatingApplicationLock] =
     useState(false);
+  const [storeSettings, setStoreSettings] = useState<StoreSettings>({
+    storeOpen: true,
+    deliveryFee: 8,
+  });
+  const [isUpdatingStore, setIsUpdatingStore] = useState(false);
   const [isSigningIn, setIsSigningIn] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null);
@@ -613,6 +622,79 @@ export function AdminApp() {
     };
   }, [canAccessAdmin]);
 
+  useEffect(() => {
+    if (!canAccessAdmin) {
+      return;
+    }
+
+    let isMounted = true;
+
+    async function refreshStoreSettings() {
+      try {
+        const settings = await getStoreSettingsUseCase.execute();
+
+        if (isMounted) {
+          setStoreSettings(settings);
+        }
+      } catch {
+        // Mantem o ultimo valor conhecido se a leitura falhar.
+      }
+    }
+
+    void refreshStoreSettings();
+
+    if (!isSupabaseConfigured || supabaseClient === null) {
+      return () => {
+        isMounted = false;
+      };
+    }
+
+    const realtimeClient = supabaseClient;
+    const channel = realtimeClient
+      .channel('admin-store-settings')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'app_settings',
+          filter: 'key=eq.store_settings',
+        },
+        () => {
+          void refreshStoreSettings();
+        },
+      )
+      .subscribe();
+
+    return () => {
+      isMounted = false;
+      void realtimeClient.removeChannel(channel);
+    };
+  }, [canAccessAdmin]);
+
+  async function toggleStoreOpen() {
+    setIsUpdatingStore(true);
+    setErrorMessage('');
+
+    try {
+      const settings = await setStoreSettingsUseCase.execute({
+        ...storeSettings,
+        storeOpen: !storeSettings.storeOpen,
+      });
+
+      setStoreSettings(settings);
+    } catch (error) {
+      setErrorMessage(
+        getUserFacingErrorMessage(
+          error,
+          'Nao foi possivel alterar a disponibilidade da loja.',
+        ),
+      );
+    } finally {
+      setIsUpdatingStore(false);
+    }
+  }
+
   async function signIn(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -854,6 +936,19 @@ export function AdminApp() {
                     : 'Bloquear aplicacao'}
                 </button>
               ) : null}
+              <button
+                className={`flex h-11 items-center justify-center gap-2 rounded border px-4 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 ${
+                  storeSettings.storeOpen
+                    ? 'border-rose-300 bg-rose-50 text-rose-900 hover:border-rose-400'
+                    : 'border-emerald-300 bg-emerald-50 text-emerald-900 hover:border-emerald-400'
+                }`}
+                disabled={isUpdatingStore}
+                type="button"
+                onClick={toggleStoreOpen}
+              >
+                <Power className="h-4 w-4" />
+                {storeSettings.storeOpen ? 'Fechar loja' : 'Abrir loja'}
+              </button>
               <button
                 className="flex h-11 items-center justify-center gap-2 rounded border border-zinc-300 bg-white px-4 text-sm font-semibold text-zinc-800 transition hover:border-zinc-400"
                 type="button"
