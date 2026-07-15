@@ -417,15 +417,15 @@ function ProductCard({
           {product.description}
         </p>
 
-        <div className="mt-auto flex items-center justify-between gap-2 pt-3">
-          <span className="text-lg font-extrabold tracking-tight text-espresso-ink">
+        <div className="mt-auto flex flex-wrap items-center justify-between gap-2 pt-3">
+          <span className="min-w-0 text-lg font-extrabold tracking-tight text-espresso-ink">
             {formatCurrency(product.price)}
           </span>
 
           {quantity === 0 ? (
             <button
               aria-label={`Adicionar ${product.name}`}
-              className="inline-flex h-10 items-center gap-1.5 rounded-full bg-terracotta-500 px-4 text-sm font-semibold text-white shadow-soft transition-all duration-200 hover:bg-terracotta-600 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
+              className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full bg-terracotta-500 px-4 text-sm font-semibold text-white shadow-soft transition-all duration-200 hover:bg-terracotta-600 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
               disabled={!storeOpen}
               type="button"
               onClick={() => onAdd(product)}
@@ -434,7 +434,7 @@ function ProductCard({
               Adicionar
             </button>
           ) : (
-            <div className="inline-flex h-10 items-center gap-1 rounded-full border border-line bg-cream p-1">
+            <div className="inline-flex h-10 shrink-0 items-center gap-1 rounded-full border border-line bg-cream p-1">
               <button
                 aria-label={`Diminuir ${product.name}`}
                 className="grid h-8 w-8 place-items-center rounded-full text-espresso-body transition-colors hover:bg-sand active:scale-95"
