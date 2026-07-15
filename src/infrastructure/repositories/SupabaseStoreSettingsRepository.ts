@@ -1,4 +1,5 @@
 import type {
+  DeliveryRegion,
   StoreSettings,
   StoreSettingsRepository,
 } from '../../application/repositories/StoreSettingsRepository';
@@ -18,6 +19,7 @@ type SupabaseClient = {
 type StoreSettingsRow = {
   store_open?: boolean;
   delivery_fee?: number;
+  delivery_regions?: unknown;
 };
 
 export class SupabaseStoreSettingsRepository
@@ -38,6 +40,7 @@ export class SupabaseStoreSettingsRepository
     const result = (await this.supabase.rpc('set_store_settings', {
       p_store_open: settings.storeOpen,
       p_delivery_fee: settings.deliveryFee,
+      p_delivery_regions: settings.deliveryRegions,
     })) as SupabaseQueryResult<unknown>;
 
     return this.toSettings(result);
@@ -55,6 +58,37 @@ export class SupabaseStoreSettingsRepository
     return {
       storeOpen: row?.store_open ?? true,
       deliveryFee: Number(row?.delivery_fee ?? 8),
+      deliveryRegions: this.toDeliveryRegions(row?.delivery_regions),
     };
+  }
+
+  private toDeliveryRegions(value: unknown): DeliveryRegion[] {
+    const parsed =
+      typeof value === 'string'
+        ? this.safeParse(value)
+        : value;
+
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+
+    return parsed
+      .map((entry) => {
+        const region = entry as { name?: unknown; fee?: unknown };
+
+        return {
+          name: typeof region.name === 'string' ? region.name : '',
+          fee: Number(region.fee ?? 0),
+        };
+      })
+      .filter((region) => region.name !== '' && Number.isFinite(region.fee));
+  }
+
+  private safeParse(value: string): unknown {
+    try {
+      return JSON.parse(value);
+    } catch {
+      return [];
+    }
   }
 }

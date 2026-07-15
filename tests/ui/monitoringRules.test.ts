@@ -28,6 +28,7 @@ const inactiveProduct = Product.create({
 const storeSettings: StoreSettings = {
   storeOpen: true,
   deliveryFee: 8,
+  deliveryRegions: [],
 };
 
 const createOrder = (
@@ -86,6 +87,7 @@ describe('monitoringRules', () => {
       storeSettings: {
         storeOpen: false,
         deliveryFee: 8,
+        deliveryRegions: [],
       },
       isApplicationLocked: true,
       realtimeStatus: 'connected',

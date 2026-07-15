@@ -33,6 +33,7 @@ describe('SupabaseStoreSettingsRepository', () => {
       {
         store_open: false,
         delivery_fee: 12,
+        delivery_regions: [{ name: 'Centro', fee: 5 }],
       },
     ]);
     const repository = new SupabaseStoreSettingsRepository(client);
@@ -40,6 +41,7 @@ describe('SupabaseStoreSettingsRepository', () => {
     await expect(repository.getSettings()).resolves.toEqual({
       storeOpen: false,
       deliveryFee: 12,
+      deliveryRegions: [{ name: 'Centro', fee: 5 }],
     });
     expect(client.rpcCalls).toEqual([
       {
@@ -53,6 +55,7 @@ describe('SupabaseStoreSettingsRepository', () => {
     const client = new FakeSupabaseClient({
       store_open: true,
       delivery_fee: 10,
+      delivery_regions: [{ name: 'Centro', fee: 6 }],
     });
     const repository = new SupabaseStoreSettingsRepository(client);
 
@@ -60,10 +63,12 @@ describe('SupabaseStoreSettingsRepository', () => {
       repository.setSettings({
         storeOpen: true,
         deliveryFee: 10,
+        deliveryRegions: [{ name: 'Centro', fee: 6 }],
       }),
     ).resolves.toEqual({
       storeOpen: true,
       deliveryFee: 10,
+      deliveryRegions: [{ name: 'Centro', fee: 6 }],
     });
     expect(client.rpcCalls).toEqual([
       {
@@ -71,6 +76,7 @@ describe('SupabaseStoreSettingsRepository', () => {
         params: {
           p_store_open: true,
           p_delivery_fee: 10,
+          p_delivery_regions: [{ name: 'Centro', fee: 6 }],
         },
       },
     ]);
@@ -88,6 +94,7 @@ describe('SupabaseStoreSettingsRepository', () => {
       repository.setSettings({
         storeOpen: false,
         deliveryFee: 8,
+        deliveryRegions: [],
       }),
     ).rejects.toThrow('Only owner can change store settings');
   });

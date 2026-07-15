@@ -341,6 +341,7 @@ export function AdminApp() {
   const [storeSettings, setStoreSettings] = useState<StoreSettings>({
     storeOpen: true,
     deliveryFee: 8,
+    deliveryRegions: [],
   });
   const [isUpdatingStore, setIsUpdatingStore] = useState(false);
   const [isSigningIn, setIsSigningIn] = useState(false);

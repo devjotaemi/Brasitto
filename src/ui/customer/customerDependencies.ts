@@ -303,6 +303,7 @@ class LocalStoreSettingsRepository implements StoreSettingsRepository {
   private settings: StoreSettings = {
     storeOpen: true,
     deliveryFee: 8,
+    deliveryRegions: [],
   };
 
   async getSettings(): Promise<StoreSettings> {

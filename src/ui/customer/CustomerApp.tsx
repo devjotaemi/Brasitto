@@ -26,6 +26,7 @@ import {
   useState,
 } from 'react';
 import type { CartItem } from '../../domain/cart/Cart';
+import type { StoreSettings } from '../../application/repositories/StoreSettingsRepository';
 import { Order, OrderStatus, OrderType } from '../../domain/order/Order';
 import {
   PRODUCT_CATEGORIES,
@@ -597,10 +598,12 @@ export function CustomerApp() {
   const [errorMessage, setErrorMessage] = useState('');
   const [createdOrder, setCreatedOrder] = useState<Order | null>(null);
   const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
-  const [storeSettings, setStoreSettings] = useState({
+  const [storeSettings, setStoreSettings] = useState<StoreSettings>({
     storeOpen: true,
     deliveryFee: 8,
+    deliveryRegions: [],
   });
+  const [selectedRegion, setSelectedRegion] = useState('');
   const [isCheckingStoreSettings, setIsCheckingStoreSettings] = useState(true);
   const [statusOrderNumber, setStatusOrderNumber] = useState('');
   const [statusCustomerPhone, setStatusCustomerPhone] = useState('');
@@ -772,6 +775,20 @@ export function CustomerApp() {
 
   const cartItems = useMemo(() => createCartItems(cartLines), [cartLines]);
 
+  const deliveryRegions = storeSettings.deliveryRegions;
+  const hasDeliveryRegions = deliveryRegions.length > 0;
+  const activeDeliveryFee = useMemo(() => {
+    if (!hasDeliveryRegions) {
+      return storeSettings.deliveryFee;
+    }
+
+    const region = deliveryRegions.find(
+      (currentRegion) => currentRegion.name === selectedRegion,
+    );
+
+    return region ? region.fee : storeSettings.deliveryFee;
+  }, [deliveryRegions, hasDeliveryRegions, selectedRegion, storeSettings.deliveryFee]);
+
   const totals = useMemo(() => {
     if (cartItems.length === 0) {
       return {
@@ -784,10 +801,10 @@ export function CustomerApp() {
     if (orderType === OrderType.DELIVERY && form.address.trim() === '') {
       return {
         subtotal: cartItems.reduce((total, item) => total + item.totalPrice, 0),
-        deliveryFee: storeSettings.deliveryFee,
+        deliveryFee: activeDeliveryFee,
         total:
           cartItems.reduce((total, item) => total + item.totalPrice, 0) +
-          storeSettings.deliveryFee,
+          activeDeliveryFee,
       };
     }
 
@@ -796,9 +813,9 @@ export function CustomerApp() {
       address:
         orderType === OrderType.DELIVERY ? form.address.trim() : undefined,
       items: cartItems,
-      deliveryFee: storeSettings.deliveryFee,
+      deliveryFee: activeDeliveryFee,
     });
-  }, [cartItems, form.address, orderType, storeSettings.deliveryFee]);
+  }, [cartItems, form.address, orderType, activeDeliveryFee]);
 
   const totalItems = useMemo(
     () => cartLines.reduce((total, line) => total + line.quantity, 0),
@@ -986,6 +1003,15 @@ export function CustomerApp() {
       return;
     }
 
+    if (
+      orderType === OrderType.DELIVERY &&
+      hasDeliveryRegions &&
+      !selectedRegion
+    ) {
+      setErrorMessage('Selecione o bairro para entrega.');
+      return;
+    }
+
     setErrorMessage('');
     setCreatedOrder(null);
     setIsSubmittingOrder(true);
@@ -1004,7 +1030,11 @@ export function CustomerApp() {
           orderType === OrderType.DELIVERY ? form.address.trim() : undefined,
         customerNote: form.note.trim() || undefined,
         items: cartItems,
-        deliveryFee: storeSettings.deliveryFee,
+        deliveryFee: activeDeliveryFee,
+        deliveryRegion:
+          orderType === OrderType.DELIVERY && selectedRegion
+            ? selectedRegion
+            : undefined,
         createdAt: new Date(),
       });
 
@@ -1021,6 +1051,7 @@ export function CustomerApp() {
         note: '',
       });
       setOrderType(OrderType.PICKUP);
+      setSelectedRegion('');
     } catch (error) {
       if (
         getErrorMessage(error)?.includes('Customer already has an active order')
@@ -1513,6 +1544,27 @@ export function CustomerApp() {
                   onChange={(event) => updateForm('phone', event.target.value)}
                 />
               </label>
+              {orderType === OrderType.DELIVERY && hasDeliveryRegions ? (
+                <label className="grid gap-1.5 text-sm font-medium text-espresso-body">
+                  Bairro
+                  <select
+                    className="h-11 rounded-xl border border-line bg-cream px-3 text-sm text-espresso-ink outline-none transition-colors focus:border-terracotta-500"
+                    value={selectedRegion}
+                    onChange={(event) => {
+                      setCreatedOrder(null);
+                      setErrorMessage('');
+                      setSelectedRegion(event.target.value);
+                    }}
+                  >
+                    <option value="">Selecione o bairro</option>
+                    {deliveryRegions.map((region) => (
+                      <option key={region.name} value={region.name}>
+                        {region.name} — {formatCurrency(region.fee)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : null}
               {orderType === OrderType.DELIVERY ? (
                 <label className="grid gap-1.5 text-sm font-medium text-espresso-body">
                   Endereço
