@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { getNewOrders } from '../../src/ui/admin/orderNotifications';
+import {
+  getNewOrders,
+  getNewlyCanceledOrders,
+} from '../../src/ui/admin/orderNotifications';
 import { Order, OrderStatus, OrderType } from '../../src/domain/order/Order';
 import { Product } from '../../src/domain/product/Product';
 
@@ -55,5 +58,39 @@ describe('getNewOrders', () => {
     const nextOrders = [createOrder('order-2'), createOrder('order-1')];
 
     expect(getNewOrders(previousOrders, nextOrders, true)).toEqual([]);
+  });
+});
+
+describe('getNewlyCanceledOrders', () => {
+  it('nao notifica no primeiro carregamento', () => {
+    const nextOrders = [createOrder('order-1', OrderStatus.CANCELED)];
+
+    expect(getNewlyCanceledOrders([], nextOrders, false)).toEqual([]);
+  });
+
+  it('identifica pedido que passou a cancelado', () => {
+    const previousOrders = [createOrder('order-1', OrderStatus.ACCEPTED)];
+    const nextOrders = [createOrder('order-1', OrderStatus.CANCELED)];
+
+    expect(getNewlyCanceledOrders(previousOrders, nextOrders, true)).toEqual([
+      nextOrders[0],
+    ]);
+  });
+
+  it('ignora pedidos que ja estavam cancelados', () => {
+    const previousOrders = [createOrder('order-1', OrderStatus.CANCELED)];
+    const nextOrders = [createOrder('order-1', OrderStatus.CANCELED)];
+
+    expect(getNewlyCanceledOrders(previousOrders, nextOrders, true)).toEqual([]);
+  });
+
+  it('ignora pedidos novos que ja chegam cancelados', () => {
+    const previousOrders = [createOrder('order-1', OrderStatus.PENDING)];
+    const nextOrders = [
+      createOrder('order-1', OrderStatus.PENDING),
+      createOrder('order-2', OrderStatus.CANCELED),
+    ];
+
+    expect(getNewlyCanceledOrders(previousOrders, nextOrders, true)).toEqual([]);
   });
 });

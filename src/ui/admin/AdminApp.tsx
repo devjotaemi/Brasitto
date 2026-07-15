@@ -46,7 +46,7 @@ import {
   sortActiveOrdersByPriority,
   type ActiveOrderStatusFilter,
 } from './orderFilters';
-import { getNewOrders } from './orderNotifications';
+import { getNewOrders, getNewlyCanceledOrders } from './orderNotifications';
 import { buildOrderWhatsAppUrl } from './orderWhatsapp';
 import {
   getRealtimeStatusPresentation,
@@ -272,6 +272,44 @@ const playNewOrderSound = (
   return true;
 };
 
+const playCanceledOrderSound = (
+  audioContextRef: MutableRefObject<AudioContext | null>,
+): boolean => {
+  const AudioContextClass =
+    window.AudioContext ?? (window as AudioWindow).webkitAudioContext;
+
+  if (!AudioContextClass) {
+    return false;
+  }
+
+  const audioContext = audioContextRef.current ?? new AudioContextClass();
+  audioContextRef.current = audioContext;
+
+  if (audioContext.state === 'suspended') {
+    void audioContext.resume();
+  }
+
+  const oscillator = audioContext.createOscillator();
+  const gain = audioContext.createGain();
+  const startTime = audioContext.currentTime;
+
+  // Timbre grave e descendente, distinto do som de novo pedido.
+  oscillator.type = 'square';
+  oscillator.frequency.setValueAtTime(320, startTime);
+  oscillator.frequency.setValueAtTime(220, startTime + 0.16);
+  oscillator.frequency.setValueAtTime(180, startTime + 0.32);
+  gain.gain.setValueAtTime(0.001, startTime);
+  gain.gain.exponentialRampToValueAtTime(0.14, startTime + 0.03);
+  gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.5);
+
+  oscillator.connect(gain);
+  gain.connect(audioContext.destination);
+  oscillator.start(startTime);
+  oscillator.stop(startTime + 0.52);
+
+  return true;
+};
+
 export function AdminApp() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [closedCommandas, setClosedCommandas] = useState<Comanda[]>([]);
@@ -421,6 +459,11 @@ export function AdminApp() {
         nextOrders,
         hasCompletedInitialLoadRef.current,
       );
+      const newlyCanceledOrders = getNewlyCanceledOrders(
+        ordersRef.current,
+        nextOrders,
+        hasCompletedInitialLoadRef.current,
+      );
 
       ordersRef.current = nextOrders;
       hasCompletedInitialLoadRef.current = true;
@@ -435,6 +478,10 @@ export function AdminApp() {
         if (isSoundEnabledRef.current) {
           playNewOrderSound(audioContextRef);
         }
+      }
+
+      if (newlyCanceledOrders.length > 0 && isSoundEnabledRef.current) {
+        playCanceledOrderSound(audioContextRef);
       }
     } catch (error) {
       setErrorMessage(
