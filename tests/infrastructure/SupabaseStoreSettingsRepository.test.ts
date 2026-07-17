@@ -114,7 +114,7 @@ describe('SupabaseStoreSettingsRepository', () => {
   it('deve falhar quando Supabase retornar erro', async () => {
     const client = {
       rpc: async (): Promise<QueryResult> => ({
-        error: new Error('Only owner can change store settings'),
+        error: new Error('Only owner or donoloja can change store settings'),
       }),
     };
     const repository = new SupabaseStoreSettingsRepository(client);
@@ -125,6 +125,6 @@ describe('SupabaseStoreSettingsRepository', () => {
         deliveryFee: 8,
         deliveryRegions: [],
       }),
-    ).rejects.toThrow('Only owner can change store settings');
+    ).rejects.toThrow('Only owner or donoloja can change store settings');
   });
 });

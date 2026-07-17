@@ -127,8 +127,9 @@ Para tornar um usuario administrador no Supabase, edite o usuario em
 }
 ```
 
-Para dar acesso operacional ao dono da loja, sem bloqueio/liberacao da
-aplicacao e sem monitoramento, mas com acesso a configuracao de frete, use:
+Para dar acesso operacional ao dono da loja, com acesso a configuracao de frete
+e abertura/fechamento da loja, mas sem bloqueio/liberacao da aplicacao e sem
+monitoramento, use:
 
 ```json
 {

@@ -133,7 +133,10 @@ describe('Supabase schema SQL', () => {
       'grant execute on function public.set_delivery_settings(numeric, jsonb) to authenticated',
     );
     expect(normalizedSchema).toContain(
-      "raise exception 'Only owner can change store settings'",
+      "(auth.jwt() -> 'app_metadata' ->> 'role') = 'donoloja'",
+    );
+    expect(normalizedSchema).toContain(
+      "raise exception 'Only owner or donoloja can change store settings'",
     );
   });
 

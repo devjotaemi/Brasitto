@@ -926,7 +926,7 @@ export function AdminApp() {
           <div className="flex flex-wrap gap-2">
             {canAccessAdmin ? (
               <>
-              {isOwner ? (
+              {canAccessSettings ? (
                 <button
                   className={`flex h-11 items-center justify-center gap-2 rounded border px-4 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 ${
                     isApplicationLocked
@@ -1290,7 +1290,7 @@ export function AdminApp() {
               type="button"
               onClick={() => setAdminSection('settings')}
             >
-              {isOwner ? 'Configuracoes' : 'Frete'}
+              Configuracoes
             </button>
           ) : null}
         </div>
@@ -1300,7 +1300,7 @@ export function AdminApp() {
         ) : null}
         {adminSection === 'products' ? <AdminProductsPanel /> : null}
         {adminSection === 'settings' && canAccessSettings ? (
-          <AdminStoreSettingsPanel canManageStoreAvailability={isOwner} />
+          <AdminStoreSettingsPanel canManageStoreAvailability />
         ) : null}
         {adminSection === 'monitoring' && isOwner ? (
           <AdminMonitoringPanel

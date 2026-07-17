@@ -469,8 +469,11 @@ declare
   v_regions jsonb;
   v_region jsonb;
 begin
-  if coalesce(auth.jwt() -> 'app_metadata' ->> 'owner', 'false') <> 'true' then
-    raise exception 'Only owner can change store settings';
+  if not (
+    coalesce(auth.jwt() -> 'app_metadata' ->> 'owner', 'false') = 'true'
+    or (auth.jwt() -> 'app_metadata' ->> 'role') = 'donoloja'
+  ) then
+    raise exception 'Only owner or donoloja can change store settings';
   end if;
 
   if p_delivery_fee < 0 then
