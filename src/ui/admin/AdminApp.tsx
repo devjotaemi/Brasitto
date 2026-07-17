@@ -193,8 +193,10 @@ const getNextStatusActions = (order: Order) => {
   return [];
 };
 
+const adminRoles = new Set(['admin', 'donoloja']);
+
 const isAdminSession = (session: Session | null): boolean =>
-  session?.user.app_metadata.role === 'admin';
+  adminRoles.has(String(session?.user.app_metadata.role ?? ''));
 
 const isOwnerSession = (session: Session | null): boolean =>
   session?.user.app_metadata.owner === true ||

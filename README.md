@@ -84,7 +84,8 @@ Elas permitem:
 
 - leitura de produtos ativos
 - criacao publica de pedidos apenas pela RPC `create_order_with_items`
-- leitura e gestao administrativa apenas para usuarios autenticados com `app_metadata.role = "admin"`
+- leitura e gestao administrativa apenas para usuarios autenticados com
+  `app_metadata.role = "admin"` ou `app_metadata.role = "donoloja"`
 
 O painel administrativo usa Supabase Realtime para atualizar pedidos novos sem
 clique manual. O `supabase/schema.sql` adiciona `public.orders` na publication
@@ -120,7 +121,17 @@ Para tornar um usuario administrador no Supabase, edite o usuario em
 }
 ```
 
-Para o dono da aplicacao, que tambem pode bloquear/liberar a aplicacao, use:
+Para dar acesso operacional ao dono da loja, sem bloqueio/liberacao da
+aplicacao e sem monitoramento, use:
+
+```json
+{
+  "role": "donoloja"
+}
+```
+
+Para o dono tecnico da aplicacao, que tambem pode bloquear/liberar a aplicacao
+e acessar monitoramento, use:
 
 ```json
 {
@@ -136,7 +147,8 @@ atualizado.
 
 - Configurar `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` no provedor de deploy.
 - Aplicar `supabase/schema.sql` e `supabase/policies.sql` no projeto Supabase.
-- Confirmar que existe ao menos um usuario com `app_metadata.role = "admin"`.
+- Confirmar que existe ao menos um usuario com `app_metadata.role = "admin"` ou
+  `app_metadata.role = "donoloja"`.
 - Confirmar que o dono tem `app_metadata.owner = "true"`.
 - Confirmar Realtime habilitado para `orders` e `app_settings`.
 - Testar cliente criando pedido, admin atualizando status e cliente consultando

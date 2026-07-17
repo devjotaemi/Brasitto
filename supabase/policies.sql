@@ -59,71 +59,71 @@ for select
 to anon
 using (active = true);
 
--- Admin dashboard protected by Supabase Auth app_metadata.role = admin.
+-- Admin dashboard protected by Supabase Auth app_metadata.role = admin/donoloja.
 create policy "Authenticated can read all products"
 on products
 for select
 to authenticated
 using (
-  (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin'
+  (auth.jwt() -> 'app_metadata' ->> 'role') in ('admin', 'donoloja')
   or coalesce(auth.jwt() -> 'app_metadata' ->> 'owner', 'false') = 'true'
 );
 
--- Admin dashboard protected by Supabase Auth app_metadata.role = admin.
+-- Admin dashboard protected by Supabase Auth app_metadata.role = admin/donoloja.
 create policy "Authenticated can create products"
 on products
 for insert
 to authenticated
 with check (
-  (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin'
+  (auth.jwt() -> 'app_metadata' ->> 'role') in ('admin', 'donoloja')
   or coalesce(auth.jwt() -> 'app_metadata' ->> 'owner', 'false') = 'true'
 );
 
--- Admin dashboard protected by Supabase Auth app_metadata.role = admin.
+-- Admin dashboard protected by Supabase Auth app_metadata.role = admin/donoloja.
 create policy "Authenticated can update products"
 on products
 for update
 to authenticated
 using (
-  (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin'
+  (auth.jwt() -> 'app_metadata' ->> 'role') in ('admin', 'donoloja')
   or coalesce(auth.jwt() -> 'app_metadata' ->> 'owner', 'false') = 'true'
 )
 with check (
-  (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin'
+  (auth.jwt() -> 'app_metadata' ->> 'role') in ('admin', 'donoloja')
   or coalesce(auth.jwt() -> 'app_metadata' ->> 'owner', 'false') = 'true'
 );
 
--- Admin dashboard protected by Supabase Auth app_metadata.role = admin.
+-- Admin dashboard protected by Supabase Auth app_metadata.role = admin/donoloja.
 create policy "Authenticated can read orders"
 on orders
 for select
 to authenticated
 using (
-  (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin'
+  (auth.jwt() -> 'app_metadata' ->> 'role') in ('admin', 'donoloja')
   or coalesce(auth.jwt() -> 'app_metadata' ->> 'owner', 'false') = 'true'
 );
 
--- Admin dashboard protected by Supabase Auth app_metadata.role = admin.
+-- Admin dashboard protected by Supabase Auth app_metadata.role = admin/donoloja.
 create policy "Authenticated can update orders"
 on orders
 for update
 to authenticated
 using (
-  (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin'
+  (auth.jwt() -> 'app_metadata' ->> 'role') in ('admin', 'donoloja')
   or coalesce(auth.jwt() -> 'app_metadata' ->> 'owner', 'false') = 'true'
 )
 with check (
-  (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin'
+  (auth.jwt() -> 'app_metadata' ->> 'role') in ('admin', 'donoloja')
   or coalesce(auth.jwt() -> 'app_metadata' ->> 'owner', 'false') = 'true'
 );
 
--- Admin dashboard protected by Supabase Auth app_metadata.role = admin.
+-- Admin dashboard protected by Supabase Auth app_metadata.role = admin/donoloja.
 create policy "Authenticated can read order items"
 on order_items
 for select
 to authenticated
 using (
-  (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin'
+  (auth.jwt() -> 'app_metadata' ->> 'role') in ('admin', 'donoloja')
   or coalesce(auth.jwt() -> 'app_metadata' ->> 'owner', 'false') = 'true'
 );
 
@@ -132,7 +132,7 @@ on comandas
 for select
 to authenticated
 using (
-  (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin'
+  (auth.jwt() -> 'app_metadata' ->> 'role') in ('admin', 'donoloja')
   or coalesce(auth.jwt() -> 'app_metadata' ->> 'owner', 'false') = 'true'
 );
 
@@ -141,7 +141,7 @@ on comandas
 for insert
 to authenticated
 with check (
-  (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin'
+  (auth.jwt() -> 'app_metadata' ->> 'role') in ('admin', 'donoloja')
   or coalesce(auth.jwt() -> 'app_metadata' ->> 'owner', 'false') = 'true'
 );
 
@@ -150,11 +150,11 @@ on comandas
 for update
 to authenticated
 using (
-  (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin'
+  (auth.jwt() -> 'app_metadata' ->> 'role') in ('admin', 'donoloja')
   or coalesce(auth.jwt() -> 'app_metadata' ->> 'owner', 'false') = 'true'
 )
 with check (
-  (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin'
+  (auth.jwt() -> 'app_metadata' ->> 'role') in ('admin', 'donoloja')
   or coalesce(auth.jwt() -> 'app_metadata' ->> 'owner', 'false') = 'true'
 );
 
@@ -163,7 +163,7 @@ on comanda_items
 for select
 to authenticated
 using (
-  (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin'
+  (auth.jwt() -> 'app_metadata' ->> 'role') in ('admin', 'donoloja')
   or coalesce(auth.jwt() -> 'app_metadata' ->> 'owner', 'false') = 'true'
 );
 
@@ -172,7 +172,7 @@ on comanda_items
 for insert
 to authenticated
 with check (
-  (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin'
+  (auth.jwt() -> 'app_metadata' ->> 'role') in ('admin', 'donoloja')
   or coalesce(auth.jwt() -> 'app_metadata' ->> 'owner', 'false') = 'true'
 );
 
@@ -181,11 +181,11 @@ on comanda_items
 for update
 to authenticated
 using (
-  (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin'
+  (auth.jwt() -> 'app_metadata' ->> 'role') in ('admin', 'donoloja')
   or coalesce(auth.jwt() -> 'app_metadata' ->> 'owner', 'false') = 'true'
 )
 with check (
-  (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin'
+  (auth.jwt() -> 'app_metadata' ->> 'role') in ('admin', 'donoloja')
   or coalesce(auth.jwt() -> 'app_metadata' ->> 'owner', 'false') = 'true'
 );
 

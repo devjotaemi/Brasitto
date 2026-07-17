@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import hotfixSql from '../../supabase/hotfix-rpc-orders-store-settings.sql?raw';
+import policiesSql from '../../supabase/policies.sql?raw';
+import productImageStorageSql from '../../supabase/product-image-storage.sql?raw';
 import schemaSql from '../../supabase/schema.sql?raw';
 
 const normalizeSql = (value: string) => value.replace(/\s+/g, ' ').trim();
@@ -70,5 +72,24 @@ describe('Supabase schema SQL', () => {
       `),
     );
     expect(normalizedHotfix).toContain("notify pgrst, 'reload schema';");
+  });
+
+  it('permite donoloja nas policies operacionais sem liberar funcoes de owner', () => {
+    const normalizedPolicies = normalizeSql(policiesSql);
+    const normalizedProductImageStorage = normalizeSql(productImageStorageSql);
+    const normalizedSchema = normalizeSql(schemaSql);
+
+    expect(normalizedPolicies).toContain(
+      "(auth.jwt() -> 'app_metadata' ->> 'role') in ('admin', 'donoloja')",
+    );
+    expect(normalizedProductImageStorage).toContain(
+      "(auth.jwt() -> 'app_metadata' ->> 'role') in ('admin', 'donoloja')",
+    );
+    expect(normalizedSchema).toContain(
+      "raise exception 'Only owner can change lock status'",
+    );
+    expect(normalizedSchema).toContain(
+      "raise exception 'Only owner can view database monitoring'",
+    );
   });
 });

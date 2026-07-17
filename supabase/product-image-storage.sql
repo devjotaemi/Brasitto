@@ -41,7 +41,7 @@ to authenticated
 with check (
   bucket_id = 'product-images'
   and (
-    (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin'
+    (auth.jwt() -> 'app_metadata' ->> 'role') in ('admin', 'donoloja')
     or coalesce(auth.jwt() -> 'app_metadata' ->> 'owner', 'false') = 'true'
   )
 );
@@ -53,14 +53,14 @@ to authenticated
 using (
   bucket_id = 'product-images'
   and (
-    (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin'
+    (auth.jwt() -> 'app_metadata' ->> 'role') in ('admin', 'donoloja')
     or coalesce(auth.jwt() -> 'app_metadata' ->> 'owner', 'false') = 'true'
   )
 )
 with check (
   bucket_id = 'product-images'
   and (
-    (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin'
+    (auth.jwt() -> 'app_metadata' ->> 'role') in ('admin', 'donoloja')
     or coalesce(auth.jwt() -> 'app_metadata' ->> 'owner', 'false') = 'true'
   )
 );
@@ -72,7 +72,7 @@ to authenticated
 using (
   bucket_id = 'product-images'
   and (
-    (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin'
+    (auth.jwt() -> 'app_metadata' ->> 'role') in ('admin', 'donoloja')
     or coalesce(auth.jwt() -> 'app_metadata' ->> 'owner', 'false') = 'true'
   )
 );
