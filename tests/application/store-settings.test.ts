@@ -4,6 +4,7 @@ import type {
   StoreSettingsRepository,
 } from '../../src/application/repositories/StoreSettingsRepository';
 import { GetStoreSettingsUseCase } from '../../src/application/get-store-settings/GetStoreSettingsUseCase';
+import { SetDeliverySettingsUseCase } from '../../src/application/set-delivery-settings/SetDeliverySettingsUseCase';
 import { SetStoreSettingsUseCase } from '../../src/application/set-store-settings/SetStoreSettingsUseCase';
 
 class FakeStoreSettingsRepository implements StoreSettingsRepository {
@@ -19,6 +20,18 @@ class FakeStoreSettingsRepository implements StoreSettingsRepository {
 
   async setSettings(settings: StoreSettings): Promise<StoreSettings> {
     this.settings = settings;
+
+    return this.settings;
+  }
+
+  async setDeliverySettings(
+    settings: Pick<StoreSettings, 'deliveryFee' | 'deliveryRegions'>,
+  ): Promise<StoreSettings> {
+    this.settings = {
+      ...this.settings,
+      deliveryFee: settings.deliveryFee,
+      deliveryRegions: settings.deliveryRegions,
+    };
 
     return this.settings;
   }
@@ -53,6 +66,27 @@ describe('Store settings use cases', () => {
       }),
     ).resolves.toEqual({
       storeOpen: true,
+      deliveryFee: 10,
+      deliveryRegions: [{ name: 'Centro', fee: 6 }],
+    });
+  });
+
+  it('deve atualizar apenas configuracoes de frete mantendo disponibilidade da loja', async () => {
+    const repository = new FakeStoreSettingsRepository();
+    repository.settings = {
+      storeOpen: false,
+      deliveryFee: 8,
+      deliveryRegions: [],
+    };
+    const useCase = new SetDeliverySettingsUseCase(repository);
+
+    await expect(
+      useCase.execute({
+        deliveryFee: 10,
+        deliveryRegions: [{ name: ' Centro ', fee: 6 }],
+      }),
+    ).resolves.toEqual({
+      storeOpen: false,
       deliveryFee: 10,
       deliveryRegions: [{ name: 'Centro', fee: 6 }],
     });

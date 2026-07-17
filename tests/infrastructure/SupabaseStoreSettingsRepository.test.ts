@@ -82,6 +82,35 @@ describe('SupabaseStoreSettingsRepository', () => {
     ]);
   });
 
+  it('deve salvar configuracoes de frete pela RPC especifica', async () => {
+    const client = new FakeSupabaseClient({
+      store_open: false,
+      delivery_fee: 10,
+      delivery_regions: [{ name: 'Centro', fee: 6 }],
+    });
+    const repository = new SupabaseStoreSettingsRepository(client);
+
+    await expect(
+      repository.setDeliverySettings({
+        deliveryFee: 10,
+        deliveryRegions: [{ name: 'Centro', fee: 6 }],
+      }),
+    ).resolves.toEqual({
+      storeOpen: false,
+      deliveryFee: 10,
+      deliveryRegions: [{ name: 'Centro', fee: 6 }],
+    });
+    expect(client.rpcCalls).toEqual([
+      {
+        functionName: 'set_delivery_settings',
+        params: {
+          p_delivery_fee: 10,
+          p_delivery_regions: [{ name: 'Centro', fee: 6 }],
+        },
+      },
+    ]);
+  });
+
   it('deve falhar quando Supabase retornar erro', async () => {
     const client = {
       rpc: async (): Promise<QueryResult> => ({

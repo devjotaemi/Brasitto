@@ -34,6 +34,7 @@ import type {
 } from '../../application/repositories/StoreSettingsRepository';
 import { SaveProductUseCase } from '../../application/save-product/SaveProductUseCase';
 import { SetApplicationLockStatusUseCase } from '../../application/set-application-lock-status/SetApplicationLockStatusUseCase';
+import { SetDeliverySettingsUseCase } from '../../application/set-delivery-settings/SetDeliverySettingsUseCase';
 import { SetStoreSettingsUseCase } from '../../application/set-store-settings/SetStoreSettingsUseCase';
 import { UpdateOrderEstimateUseCase } from '../../application/update-order-estimate/UpdateOrderEstimateUseCase';
 import { UpdateOrderStatusUseCase } from '../../application/update-order-status/UpdateOrderStatusUseCase';
@@ -72,6 +73,7 @@ type CustomerDependencies = {
   getApplicationLockStatusUseCase: GetApplicationLockStatusUseCase;
   setApplicationLockStatusUseCase: SetApplicationLockStatusUseCase;
   getStoreSettingsUseCase: GetStoreSettingsUseCase;
+  setDeliverySettingsUseCase: SetDeliverySettingsUseCase;
   setStoreSettingsUseCase: SetStoreSettingsUseCase;
   updateOrderEstimateUseCase: UpdateOrderEstimateUseCase;
   updateOrderStatusUseCase: UpdateOrderStatusUseCase;
@@ -325,6 +327,18 @@ class LocalStoreSettingsRepository implements StoreSettingsRepository {
 
     return this.settings;
   }
+
+  async setDeliverySettings(
+    settings: Pick<StoreSettings, 'deliveryFee' | 'deliveryRegions'>,
+  ): Promise<StoreSettings> {
+    this.settings = {
+      ...this.settings,
+      deliveryFee: settings.deliveryFee,
+      deliveryRegions: settings.deliveryRegions,
+    };
+
+    return this.settings;
+  }
 }
 
 class LocalDatabaseMonitoringRepository implements DatabaseMonitoringRepository {
@@ -437,6 +451,9 @@ export function createCustomerDependencies(): CustomerDependencies {
       applicationLockRepository,
     ),
     getStoreSettingsUseCase: new GetStoreSettingsUseCase(
+      storeSettingsRepository,
+    ),
+    setDeliverySettingsUseCase: new SetDeliverySettingsUseCase(
       storeSettingsRepository,
     ),
     setStoreSettingsUseCase: new SetStoreSettingsUseCase(

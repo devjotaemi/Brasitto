@@ -516,6 +516,77 @@ $$;
 grant execute on function public.get_store_settings() to anon, authenticated;
 grant execute on function public.set_store_settings(boolean, numeric, jsonb) to authenticated;
 
+drop function if exists public.set_delivery_settings(numeric, jsonb);
+
+create or replace function public.set_delivery_settings(
+  p_delivery_fee numeric,
+  p_delivery_regions jsonb default '[]'::jsonb
+)
+returns table (
+  store_open boolean,
+  delivery_fee numeric,
+  delivery_regions jsonb
+)
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_regions jsonb;
+  v_region jsonb;
+begin
+  if not (
+    coalesce((auth.jwt() -> 'app_metadata' ->> 'role') in ('admin', 'donoloja'), false)
+    or coalesce(auth.jwt() -> 'app_metadata' ->> 'owner', 'false') = 'true'
+  ) then
+    raise exception 'Only admin can change delivery settings';
+  end if;
+
+  if p_delivery_fee < 0 then
+    raise exception 'Delivery fee must be zero or greater';
+  end if;
+
+  v_regions := coalesce(p_delivery_regions, '[]'::jsonb);
+
+  if jsonb_typeof(v_regions) <> 'array' then
+    raise exception 'Delivery regions must be a list';
+  end if;
+
+  for v_region in select * from jsonb_array_elements(v_regions)
+  loop
+    if coalesce(btrim(v_region ->> 'name'), '') = '' then
+      raise exception 'Delivery region must have a name';
+    end if;
+
+    if (v_region ->> 'fee')::numeric < 0 then
+      raise exception 'Delivery region fee must be zero or greater';
+    end if;
+  end loop;
+
+  update app_settings
+  set
+    value = jsonb_set(
+      jsonb_set(
+        coalesce(value, '{}'::jsonb),
+        '{deliveryFee}',
+        to_jsonb(p_delivery_fee),
+        true
+      ),
+      '{deliveryRegions}',
+      v_regions,
+      true
+    ),
+    updated_at = now()
+  where key = 'store_settings';
+
+  return query
+  select *
+  from public.get_store_settings();
+end;
+$$;
+
+grant execute on function public.set_delivery_settings(numeric, jsonb) to authenticated;
+
 drop function if exists public.create_order_with_items(
   uuid,
   text,

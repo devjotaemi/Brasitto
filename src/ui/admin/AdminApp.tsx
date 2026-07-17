@@ -202,6 +202,9 @@ const isOwnerSession = (session: Session | null): boolean =>
   session?.user.app_metadata.owner === true ||
   session?.user.app_metadata.owner === 'true';
 
+const canAccessStoreSettings = (session: Session | null): boolean =>
+  isOwnerSession(session) || session?.user.app_metadata.role === 'donoloja';
+
 const isHistoryOrder = (order: Order): boolean =>
   order.status === OrderStatus.FINISHED ||
   order.status === OrderStatus.CANCELED;
@@ -379,6 +382,7 @@ export function AdminApp() {
   const isAuthenticated = session !== null;
   const isAdmin = isAdminSession(session);
   const isOwner = isOwnerSession(session);
+  const canAccessSettings = canAccessStoreSettings(session);
   const canAccessAdmin =
     !requiresAuthentication ||
     ((isAdmin || isOwner) && (!isApplicationLocked || isOwner));
@@ -939,19 +943,21 @@ export function AdminApp() {
                     : 'Bloquear aplicacao'}
                 </button>
               ) : null}
-              <button
-                className={`flex h-11 items-center justify-center gap-2 rounded border px-4 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 ${
-                  storeSettings.storeOpen
-                    ? 'border-rose-300 bg-rose-50 text-rose-900 hover:border-rose-400'
-                    : 'border-emerald-300 bg-emerald-50 text-emerald-900 hover:border-emerald-400'
-                }`}
-                disabled={isUpdatingStore}
-                type="button"
-                onClick={toggleStoreOpen}
-              >
-                <Power className="h-4 w-4" />
-                {storeSettings.storeOpen ? 'Fechar loja' : 'Abrir loja'}
-              </button>
+              {isOwner ? (
+                <button
+                  className={`flex h-11 items-center justify-center gap-2 rounded border px-4 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 ${
+                    storeSettings.storeOpen
+                      ? 'border-rose-300 bg-rose-50 text-rose-900 hover:border-rose-400'
+                      : 'border-emerald-300 bg-emerald-50 text-emerald-900 hover:border-emerald-400'
+                  }`}
+                  disabled={isUpdatingStore}
+                  type="button"
+                  onClick={toggleStoreOpen}
+                >
+                  <Power className="h-4 w-4" />
+                  {storeSettings.storeOpen ? 'Fechar loja' : 'Abrir loja'}
+                </button>
+              ) : null}
               <button
                 className="flex h-11 items-center justify-center gap-2 rounded border border-zinc-300 bg-white px-4 text-sm font-semibold text-zinc-800 transition hover:border-zinc-400"
                 type="button"
@@ -1274,7 +1280,7 @@ export function AdminApp() {
               Monitoramento
             </button>
           ) : null}
-          {isOwner ? (
+          {canAccessSettings ? (
             <button
               className={`h-10 rounded px-4 text-sm font-semibold transition ${
                 adminSection === 'settings'
@@ -1284,7 +1290,7 @@ export function AdminApp() {
               type="button"
               onClick={() => setAdminSection('settings')}
             >
-              Configuracoes
+              {isOwner ? 'Configuracoes' : 'Frete'}
             </button>
           ) : null}
         </div>
@@ -1293,7 +1299,9 @@ export function AdminApp() {
           <AdminCommandasPanel onCommandasChanged={() => loadOrders()} />
         ) : null}
         {adminSection === 'products' ? <AdminProductsPanel /> : null}
-        {adminSection === 'settings' ? <AdminStoreSettingsPanel /> : null}
+        {adminSection === 'settings' && canAccessSettings ? (
+          <AdminStoreSettingsPanel canManageStoreAvailability={isOwner} />
+        ) : null}
         {adminSection === 'monitoring' && isOwner ? (
           <AdminMonitoringPanel
             isApplicationLocked={isApplicationLocked}

@@ -3,8 +3,11 @@ import type { FormEvent } from 'react';
 import { useEffect, useState } from 'react';
 import { createCustomerDependencies } from '../customer/customerDependencies';
 
-const { getStoreSettingsUseCase, setStoreSettingsUseCase } =
-  createCustomerDependencies();
+const {
+  getStoreSettingsUseCase,
+  setDeliverySettingsUseCase,
+  setStoreSettingsUseCase,
+} = createCustomerDependencies();
 
 type RegionRow = {
   name: string;
@@ -69,7 +72,13 @@ const getUserFacingErrorMessage = (
   return error.message;
 };
 
-export function AdminStoreSettingsPanel() {
+type AdminStoreSettingsPanelProps = {
+  canManageStoreAvailability?: boolean;
+};
+
+export function AdminStoreSettingsPanel({
+  canManageStoreAvailability = false,
+}: AdminStoreSettingsPanelProps) {
   const [storeOpen, setStoreOpen] = useState(true);
   const [deliveryFee, setDeliveryFee] = useState('8');
   const [regionRows, setRegionRows] = useState<RegionRow[]>([]);
@@ -150,11 +159,16 @@ export function AdminStoreSettingsPanel() {
       .filter((region) => region.name !== '');
 
     try {
-      const settings = await setStoreSettingsUseCase.execute({
-        storeOpen,
-        deliveryFee: Number(deliveryFee.replace(',', '.')),
-        deliveryRegions,
-      });
+      const settings = canManageStoreAvailability
+        ? await setStoreSettingsUseCase.execute({
+            storeOpen,
+            deliveryFee: Number(deliveryFee.replace(',', '.')),
+            deliveryRegions,
+          })
+        : await setDeliverySettingsUseCase.execute({
+            deliveryFee: Number(deliveryFee.replace(',', '.')),
+            deliveryRegions,
+          });
 
       setStoreOpen(settings.storeOpen);
       setDeliveryFee(String(settings.deliveryFee));
@@ -187,7 +201,9 @@ export function AdminStoreSettingsPanel() {
       <div className="flex items-center gap-2">
         <Settings className="h-5 w-5 text-rose-700" />
         <h2 className="text-lg font-semibold text-zinc-950">
-          Configuracoes da loja
+          {canManageStoreAvailability
+            ? 'Configuracoes da loja'
+            : 'Configuracoes do frete'}
         </h2>
       </div>
 
@@ -197,18 +213,20 @@ export function AdminStoreSettingsPanel() {
         </p>
       ) : null}
 
-      <label className="flex items-center gap-2 text-sm font-medium text-zinc-700">
-        <input
-          checked={storeOpen}
-          className="h-4 w-4 accent-rose-700"
-          type="checkbox"
-          onChange={(event) => {
-            setStoreOpen(event.target.checked);
-            clearFeedback();
-          }}
-        />
-        Loja aberta para pedidos
-      </label>
+      {canManageStoreAvailability ? (
+        <label className="flex items-center gap-2 text-sm font-medium text-zinc-700">
+          <input
+            checked={storeOpen}
+            className="h-4 w-4 accent-rose-700"
+            type="checkbox"
+            onChange={(event) => {
+              setStoreOpen(event.target.checked);
+              clearFeedback();
+            }}
+          />
+          Loja aberta para pedidos
+        </label>
+      ) : null}
 
       <label className="grid gap-1 text-sm font-medium text-zinc-700">
         Taxa padrao de entrega
@@ -305,7 +323,7 @@ export function AdminStoreSettingsPanel() {
         type="submit"
       >
         <Save className="h-4 w-4" />
-        {isSaving ? 'Salvando...' : 'Salvar configuracoes'}
+        {isSaving ? 'Salvando...' : 'Salvar frete'}
       </button>
     </form>
   );

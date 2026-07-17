@@ -9,7 +9,13 @@ export type StoreSettings = {
   deliveryRegions: DeliveryRegion[];
 };
 
+export type DeliverySettings = Pick<
+  StoreSettings,
+  'deliveryFee' | 'deliveryRegions'
+>;
+
 export interface StoreSettingsRepository {
   getSettings(): Promise<StoreSettings>;
   setSettings(settings: StoreSettings): Promise<StoreSettings>;
+  setDeliverySettings(settings: DeliverySettings): Promise<StoreSettings>;
 }

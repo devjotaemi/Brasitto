@@ -115,6 +115,28 @@ describe('Supabase schema SQL', () => {
     );
   });
 
+  it('permite donoloja atualizar apenas configuracoes de frete', () => {
+    const normalizedSchema = normalizeSql(schemaSql);
+
+    expect(normalizedSchema).toContain(
+      normalizeSql(`
+        create or replace function public.set_delivery_settings(
+          p_delivery_fee numeric,
+          p_delivery_regions jsonb default '[]'::jsonb
+        )
+      `),
+    );
+    expect(normalizedSchema).toContain(
+      "(auth.jwt() -> 'app_metadata' ->> 'role') in ('admin', 'donoloja')",
+    );
+    expect(normalizedSchema).toContain(
+      'grant execute on function public.set_delivery_settings(numeric, jsonb) to authenticated',
+    );
+    expect(normalizedSchema).toContain(
+      "raise exception 'Only owner can change store settings'",
+    );
+  });
+
   it('define fechamento operacional diario e agendamento as 6h', () => {
     const normalizedSchema = normalizeSql(schemaSql);
     const normalizedDailyRollover = normalizeSql(dailyRolloverSql);

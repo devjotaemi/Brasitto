@@ -46,6 +46,17 @@ export class SupabaseStoreSettingsRepository
     return this.toSettings(result);
   }
 
+  async setDeliverySettings(
+    settings: Pick<StoreSettings, 'deliveryFee' | 'deliveryRegions'>,
+  ): Promise<StoreSettings> {
+    const result = (await this.supabase.rpc('set_delivery_settings', {
+      p_delivery_fee: settings.deliveryFee,
+      p_delivery_regions: settings.deliveryRegions,
+    })) as SupabaseQueryResult<unknown>;
+
+    return this.toSettings(result);
+  }
+
   private toSettings(result: SupabaseQueryResult<unknown>): StoreSettings {
     if (result.error) {
       throw result.error;
