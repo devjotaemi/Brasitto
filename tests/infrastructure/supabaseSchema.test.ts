@@ -92,6 +92,9 @@ describe('Supabase schema SQL', () => {
     expect(normalizedSchema).toContain(
       "raise exception 'Only owner can view database monitoring'",
     );
+    expect(normalizedSchema).toContain(
+      "(auth.jwt() -> 'app_metadata' ->> 'role') = 'donoloja'",
+    );
   });
 
   it('define exclusao de produto preservando historico de itens', () => {

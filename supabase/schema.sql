@@ -1025,7 +1025,9 @@ security definer
 set search_path = public
 as $$
 begin
-  if coalesce(auth.jwt() -> 'app_metadata' ->> 'owner', 'false') <> 'true' then
+  if coalesce(auth.jwt() -> 'app_metadata' ->> 'owner', 'false') <> 'true'
+    or (auth.jwt() -> 'app_metadata' ->> 'role') = 'donoloja'
+  then
     raise exception 'Only owner can change lock status';
   end if;
 
@@ -1069,7 +1071,9 @@ declare
   v_checked_at timestamptz := now();
   v_max_connections integer := current_setting('max_connections')::integer;
 begin
-  if coalesce(auth.jwt() -> 'app_metadata' ->> 'owner', 'false') <> 'true' then
+  if coalesce(auth.jwt() -> 'app_metadata' ->> 'owner', 'false') <> 'true'
+    or (auth.jwt() -> 'app_metadata' ->> 'role') = 'donoloja'
+  then
     raise exception 'Only owner can view database monitoring';
   end if;
 

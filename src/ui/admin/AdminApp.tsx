@@ -199,8 +199,9 @@ const isAdminSession = (session: Session | null): boolean =>
   adminRoles.has(String(session?.user.app_metadata.role ?? ''));
 
 const isOwnerSession = (session: Session | null): boolean =>
-  session?.user.app_metadata.owner === true ||
-  session?.user.app_metadata.owner === 'true';
+  session?.user.app_metadata.role !== 'donoloja' &&
+  (session?.user.app_metadata.owner === true ||
+    session?.user.app_metadata.owner === 'true');
 
 const canAccessStoreSettings = (session: Session | null): boolean =>
   isOwnerSession(session) || session?.user.app_metadata.role === 'donoloja';
@@ -926,7 +927,7 @@ export function AdminApp() {
           <div className="flex flex-wrap gap-2">
             {canAccessAdmin ? (
               <>
-              {canAccessSettings ? (
+              {isOwner ? (
                 <button
                   className={`flex h-11 items-center justify-center gap-2 rounded border px-4 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 ${
                     isApplicationLocked
@@ -943,8 +944,8 @@ export function AdminApp() {
                     : 'Bloquear aplicacao'}
                 </button>
               ) : null}
-              {isOwner ? (
-                <button
+                {canAccessSettings ? (
+                  <button
                   className={`flex h-11 items-center justify-center gap-2 rounded border px-4 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 ${
                     storeSettings.storeOpen
                       ? 'border-rose-300 bg-rose-50 text-rose-900 hover:border-rose-400'
