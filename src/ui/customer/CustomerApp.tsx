@@ -658,12 +658,51 @@ export function CustomerApp() {
       }
     }
 
-    loadProducts();
+    void loadProducts();
+
+    if (!isSupabaseConfigured || supabaseClient === null) {
+      return () => {
+        isMounted = false;
+      };
+    }
+
+    const realtimeClient = supabaseClient;
+    const channel = realtimeClient
+      .channel('customer-products')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'products',
+        },
+        () => {
+          void loadProducts();
+        },
+      )
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          void loadProducts();
+        }
+      });
 
     return () => {
       isMounted = false;
+      void realtimeClient.removeChannel(channel);
     };
   }, [isApplicationLocked, isCheckingApplicationLock]);
+
+  useEffect(() => {
+    const activeProductIds = new Set(
+      products.flatMap((product) => (product.id ? [product.id] : [])),
+    );
+
+    setCartLines((currentLines) =>
+      currentLines.filter((line) =>
+        line.product.id ? activeProductIds.has(line.product.id) : false,
+      ),
+    );
+  }, [products]);
 
   useEffect(() => {
     let isMounted = true;

@@ -136,4 +136,12 @@ describe('Supabase schema SQL', () => {
       "cron.schedule( 'daily-operational-rollover', '0 9 * * *'",
     );
   });
+
+  it('habilita realtime para atualizacoes do cardapio no cliente', () => {
+    const normalizedSchema = normalizeSql(schemaSql);
+
+    expect(normalizedSchema).toContain(
+      'alter publication supabase_realtime add table public.products',
+    );
+  });
 });
