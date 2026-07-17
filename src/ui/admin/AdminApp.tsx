@@ -8,6 +8,7 @@ import {
   LogOut,
   Mail,
   PackageCheck,
+  Power,
   RefreshCw,
   Send,
   Truck,
@@ -21,6 +22,7 @@ import type { Session } from '@supabase/supabase-js';
 import { ComandaStatus, type Comanda } from '../../domain/comanda/Comanda';
 import type { Order } from '../../domain/order/Order';
 import { OrderStatus, OrderType } from '../../domain/order/Order';
+import type { StoreSettings } from '../../application/repositories/StoreSettingsRepository';
 import {
   isSupabaseConfigured,
   supabaseClient,
@@ -46,7 +48,7 @@ import {
   sortActiveOrdersByPriority,
   type ActiveOrderStatusFilter,
 } from './orderFilters';
-import { getNewOrders } from './orderNotifications';
+import { getNewOrders, getNewlyCanceledOrders } from './orderNotifications';
 import { buildOrderWhatsAppUrl } from './orderWhatsapp';
 import {
   getRealtimeStatusPresentation,
@@ -72,10 +74,12 @@ const cancellationReasonOptions = [
 
 const {
   getApplicationLockStatusUseCase,
+  getStoreSettingsUseCase,
   listCommandasUseCase,
   listOrdersUseCase,
   repositoryMode,
   setApplicationLockStatusUseCase,
+  setStoreSettingsUseCase,
   updateOrderEstimateUseCase,
   updateOrderStatusUseCase,
 } = createCustomerDependencies();
@@ -272,6 +276,44 @@ const playNewOrderSound = (
   return true;
 };
 
+const playCanceledOrderSound = (
+  audioContextRef: MutableRefObject<AudioContext | null>,
+): boolean => {
+  const AudioContextClass =
+    window.AudioContext ?? (window as AudioWindow).webkitAudioContext;
+
+  if (!AudioContextClass) {
+    return false;
+  }
+
+  const audioContext = audioContextRef.current ?? new AudioContextClass();
+  audioContextRef.current = audioContext;
+
+  if (audioContext.state === 'suspended') {
+    void audioContext.resume();
+  }
+
+  const oscillator = audioContext.createOscillator();
+  const gain = audioContext.createGain();
+  const startTime = audioContext.currentTime;
+
+  // Timbre grave e descendente, distinto do som de novo pedido.
+  oscillator.type = 'square';
+  oscillator.frequency.setValueAtTime(320, startTime);
+  oscillator.frequency.setValueAtTime(220, startTime + 0.16);
+  oscillator.frequency.setValueAtTime(180, startTime + 0.32);
+  gain.gain.setValueAtTime(0.001, startTime);
+  gain.gain.exponentialRampToValueAtTime(0.14, startTime + 0.03);
+  gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.5);
+
+  oscillator.connect(gain);
+  gain.connect(audioContext.destination);
+  oscillator.start(startTime);
+  oscillator.stop(startTime + 0.52);
+
+  return true;
+};
+
 export function AdminApp() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [closedCommandas, setClosedCommandas] = useState<Comanda[]>([]);
@@ -296,6 +338,12 @@ export function AdminApp() {
   );
   const [isUpdatingApplicationLock, setIsUpdatingApplicationLock] =
     useState(false);
+  const [storeSettings, setStoreSettings] = useState<StoreSettings>({
+    storeOpen: true,
+    deliveryFee: 8,
+    deliveryRegions: [],
+  });
+  const [isUpdatingStore, setIsUpdatingStore] = useState(false);
   const [isSigningIn, setIsSigningIn] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null);
@@ -421,6 +469,11 @@ export function AdminApp() {
         nextOrders,
         hasCompletedInitialLoadRef.current,
       );
+      const newlyCanceledOrders = getNewlyCanceledOrders(
+        ordersRef.current,
+        nextOrders,
+        hasCompletedInitialLoadRef.current,
+      );
 
       ordersRef.current = nextOrders;
       hasCompletedInitialLoadRef.current = true;
@@ -435,6 +488,10 @@ export function AdminApp() {
         if (isSoundEnabledRef.current) {
           playNewOrderSound(audioContextRef);
         }
+      }
+
+      if (newlyCanceledOrders.length > 0 && isSoundEnabledRef.current) {
+        playCanceledOrderSound(audioContextRef);
       }
     } catch (error) {
       setErrorMessage(
@@ -565,6 +622,79 @@ export function AdminApp() {
       void realtimeClient.removeChannel(channel);
     };
   }, [canAccessAdmin]);
+
+  useEffect(() => {
+    if (!canAccessAdmin) {
+      return;
+    }
+
+    let isMounted = true;
+
+    async function refreshStoreSettings() {
+      try {
+        const settings = await getStoreSettingsUseCase.execute();
+
+        if (isMounted) {
+          setStoreSettings(settings);
+        }
+      } catch {
+        // Mantem o ultimo valor conhecido se a leitura falhar.
+      }
+    }
+
+    void refreshStoreSettings();
+
+    if (!isSupabaseConfigured || supabaseClient === null) {
+      return () => {
+        isMounted = false;
+      };
+    }
+
+    const realtimeClient = supabaseClient;
+    const channel = realtimeClient
+      .channel('admin-store-settings')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'app_settings',
+          filter: 'key=eq.store_settings',
+        },
+        () => {
+          void refreshStoreSettings();
+        },
+      )
+      .subscribe();
+
+    return () => {
+      isMounted = false;
+      void realtimeClient.removeChannel(channel);
+    };
+  }, [canAccessAdmin]);
+
+  async function toggleStoreOpen() {
+    setIsUpdatingStore(true);
+    setErrorMessage('');
+
+    try {
+      const settings = await setStoreSettingsUseCase.execute({
+        ...storeSettings,
+        storeOpen: !storeSettings.storeOpen,
+      });
+
+      setStoreSettings(settings);
+    } catch (error) {
+      setErrorMessage(
+        getUserFacingErrorMessage(
+          error,
+          'Nao foi possivel alterar a disponibilidade da loja.',
+        ),
+      );
+    } finally {
+      setIsUpdatingStore(false);
+    }
+  }
 
   async function signIn(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -807,6 +937,19 @@ export function AdminApp() {
                     : 'Bloquear aplicacao'}
                 </button>
               ) : null}
+              <button
+                className={`flex h-11 items-center justify-center gap-2 rounded border px-4 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 ${
+                  storeSettings.storeOpen
+                    ? 'border-rose-300 bg-rose-50 text-rose-900 hover:border-rose-400'
+                    : 'border-emerald-300 bg-emerald-50 text-emerald-900 hover:border-emerald-400'
+                }`}
+                disabled={isUpdatingStore}
+                type="button"
+                onClick={toggleStoreOpen}
+              >
+                <Power className="h-4 w-4" />
+                {storeSettings.storeOpen ? 'Fechar loja' : 'Abrir loja'}
+              </button>
               <button
                 className="flex h-11 items-center justify-center gap-2 rounded border border-zinc-300 bg-white px-4 text-sm font-semibold text-zinc-800 transition hover:border-zinc-400"
                 type="button"

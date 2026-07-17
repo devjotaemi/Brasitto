@@ -66,6 +66,7 @@ export class SupabaseOrderRepository implements OrderRepository {
         p_order_type: order.type,
         p_address: order.address ?? null,
         p_customer_note: order.customerNote ?? null,
+        p_delivery_region: order.deliveryRegion ?? null,
         p_items: this.toCreateOrderItemRows(order),
       })) as SupabaseQueryResult<unknown>;
 

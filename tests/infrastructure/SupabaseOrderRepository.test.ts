@@ -255,6 +255,7 @@ describe('SupabaseOrderRepository', () => {
         p_order_type: 'DELIVERY',
         p_address: 'Rua dos Espetos, 123',
         p_customer_note: null,
+        p_delivery_region: null,
         p_items: [
           {
             product_id: 'product-1',

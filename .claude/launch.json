@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "espetaria",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "preview:static"],
+      "autoPort": true,
+      "port": 5173
+    }
+  ]
+}

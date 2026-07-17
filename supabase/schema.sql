@@ -321,10 +321,13 @@ on comandas(table_number)
 where status = 'OPEN'
   and table_number is not null;
 
+drop function if exists public.get_store_settings();
+
 create or replace function public.get_store_settings()
 returns table (
   store_open boolean,
-  delivery_fee numeric
+  delivery_fee numeric,
+  delivery_regions jsonb
 )
 language sql
 security definer
@@ -332,23 +335,32 @@ set search_path = public
 as $$
   select
     coalesce((value ->> 'storeOpen')::boolean, true) as store_open,
-    coalesce((value ->> 'deliveryFee')::numeric, 8) as delivery_fee
+    coalesce((value ->> 'deliveryFee')::numeric, 8) as delivery_fee,
+    coalesce(value -> 'deliveryRegions', '[]'::jsonb) as delivery_regions
   from app_settings
   where key = 'store_settings';
 $$;
 
+drop function if exists public.set_store_settings(boolean, numeric);
+drop function if exists public.set_store_settings(boolean, numeric, jsonb);
+
 create or replace function public.set_store_settings(
   p_store_open boolean,
-  p_delivery_fee numeric
+  p_delivery_fee numeric,
+  p_delivery_regions jsonb default '[]'::jsonb
 )
 returns table (
   store_open boolean,
-  delivery_fee numeric
+  delivery_fee numeric,
+  delivery_regions jsonb
 )
 language plpgsql
 security definer
 set search_path = public
 as $$
+declare
+  v_regions jsonb;
+  v_region jsonb;
 begin
   if coalesce(auth.jwt() -> 'app_metadata' ->> 'owner', 'false') <> 'true' then
     raise exception 'Only owner can change store settings';
@@ -358,13 +370,32 @@ begin
     raise exception 'Delivery fee must be zero or greater';
   end if;
 
+  v_regions := coalesce(p_delivery_regions, '[]'::jsonb);
+
+  if jsonb_typeof(v_regions) <> 'array' then
+    raise exception 'Delivery regions must be a list';
+  end if;
+
+  for v_region in select * from jsonb_array_elements(v_regions)
+  loop
+    if coalesce(btrim(v_region ->> 'name'), '') = '' then
+      raise exception 'Delivery region must have a name';
+    end if;
+
+    if (v_region ->> 'fee')::numeric < 0 then
+      raise exception 'Delivery region fee must be zero or greater';
+    end if;
+  end loop;
+
   update app_settings
   set
     value = jsonb_build_object(
       'storeOpen',
       p_store_open,
       'deliveryFee',
-      p_delivery_fee
+      p_delivery_fee,
+      'deliveryRegions',
+      v_regions
     ),
     updated_at = now()
   where key = 'store_settings';
@@ -376,7 +407,7 @@ end;
 $$;
 
 grant execute on function public.get_store_settings() to anon, authenticated;
-grant execute on function public.set_store_settings(boolean, numeric) to authenticated;
+grant execute on function public.set_store_settings(boolean, numeric, jsonb) to authenticated;
 
 drop function if exists public.create_order_with_items(
   uuid,
@@ -403,6 +434,16 @@ drop function if exists public.create_order_with_items(
 
 drop function if exists public.create_order_with_items(
   uuid,
+  text,
+  text,
+  text,
+  text,
+  jsonb
+);
+
+drop function if exists public.create_order_with_items(
+  uuid,
+  text,
   text,
   text,
   text,
@@ -417,6 +458,7 @@ create or replace function public.create_order_with_items(
   p_order_type text,
   p_address text,
   p_customer_note text,
+  p_delivery_region text,
   p_items jsonb
 )
 returns table (
@@ -447,10 +489,12 @@ declare
   v_delivery_fee numeric(10, 2);
   v_total numeric(10, 2);
   v_store_open boolean;
+  v_delivery_regions jsonb;
+  v_region_fee numeric(10, 2);
   v_normalized_customer_phone text;
 begin
-  select settings.store_open, settings.delivery_fee
-  into v_store_open, v_delivery_fee
+  select settings.store_open, settings.delivery_fee, settings.delivery_regions
+  into v_store_open, v_delivery_fee, v_delivery_regions
   from public.get_store_settings() as settings;
 
   if v_store_open = false then
@@ -521,7 +565,22 @@ begin
   into v_subtotal
   from tmp_order_items;
 
-  v_delivery_fee := case when p_order_type = 'DELIVERY' then v_delivery_fee else 0 end;
+  if p_order_type = 'DELIVERY' then
+    if p_delivery_region is not null and btrim(p_delivery_region) <> '' then
+      select (region ->> 'fee')::numeric
+      into v_region_fee
+      from jsonb_array_elements(coalesce(v_delivery_regions, '[]'::jsonb)) as region
+      where region ->> 'name' = p_delivery_region
+      limit 1;
+
+      if v_region_fee is not null then
+        v_delivery_fee := v_region_fee;
+      end if;
+    end if;
+  else
+    v_delivery_fee := 0;
+  end if;
+
   v_total := v_subtotal + v_delivery_fee;
 
   insert into orders (
@@ -596,6 +655,7 @@ $$;
 
 grant execute on function public.create_order_with_items(
   uuid,
+  text,
   text,
   text,
   text,

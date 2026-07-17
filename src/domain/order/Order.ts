@@ -24,6 +24,7 @@ export type OrderProps = {
   address?: string;
   items: CartItem[];
   deliveryFee?: number;
+  deliveryRegion?: string;
   createdAt?: Date;
   finishedAt?: Date;
   customerNote?: string;
@@ -64,6 +65,7 @@ export class Order {
     public readonly customerNote?: string,
     public readonly estimatedReadyAt?: Date,
     public readonly cancellationReason?: string,
+    public readonly deliveryRegion?: string,
   ) {}
 
   static create(props: OrderProps): Order {
@@ -94,6 +96,7 @@ export class Order {
       props.customerNote,
       props.estimatedReadyAt,
       props.cancellationReason,
+      props.deliveryRegion,
     );
   }
 
@@ -148,6 +151,7 @@ export class Order {
       status === OrderStatus.CANCELED
         ? cancellationReason ?? this.cancellationReason
         : undefined,
+      this.deliveryRegion,
     );
   }
 
@@ -169,6 +173,7 @@ export class Order {
       this.customerNote,
       estimatedReadyAt,
       this.cancellationReason,
+      this.deliveryRegion,
     );
   }
 }

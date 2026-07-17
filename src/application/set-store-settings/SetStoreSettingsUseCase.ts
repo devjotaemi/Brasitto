@@ -1,9 +1,12 @@
 import type {
+  DeliveryRegion,
   StoreSettings,
   StoreSettingsRepository,
 } from '../repositories/StoreSettingsRepository';
 
-export type SetStoreSettingsInput = StoreSettings;
+export type SetStoreSettingsInput = Omit<StoreSettings, 'deliveryRegions'> & {
+  deliveryRegions?: DeliveryRegion[];
+};
 
 export class SetStoreSettingsUseCase {
   constructor(private readonly storeSettingsRepository: StoreSettingsRepository) {}
@@ -13,9 +16,25 @@ export class SetStoreSettingsUseCase {
       throw new Error('Delivery fee must be zero or greater');
     }
 
+    const deliveryRegions = input.deliveryRegions ?? [];
+
+    for (const region of deliveryRegions) {
+      if (!region.name.trim()) {
+        throw new Error('Delivery region must have a name');
+      }
+
+      if (!Number.isFinite(region.fee) || region.fee < 0) {
+        throw new Error('Delivery region fee must be zero or greater');
+      }
+    }
+
     return this.storeSettingsRepository.setSettings({
       storeOpen: input.storeOpen,
       deliveryFee: input.deliveryFee,
+      deliveryRegions: deliveryRegions.map((region) => ({
+        name: region.name.trim(),
+        fee: region.fee,
+      })),
     });
   }
 }
