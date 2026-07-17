@@ -321,6 +321,98 @@ on comandas(table_number)
 where status = 'OPEN'
   and table_number is not null;
 
+drop function if exists public.delete_product(uuid);
+
+create or replace function public.delete_product(
+  p_product_id uuid
+)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if not (
+    coalesce((auth.jwt() -> 'app_metadata' ->> 'role') in ('admin', 'donoloja'), false)
+    or coalesce(auth.jwt() -> 'app_metadata' ->> 'owner', 'false') = 'true'
+  ) then
+    raise exception 'Only admin can delete products';
+  end if;
+
+  update order_items
+  set product_id = null
+  where product_id = p_product_id;
+
+  update comanda_items
+  set product_id = null
+  where product_id = p_product_id;
+
+  delete from products
+  where id = p_product_id;
+end;
+$$;
+
+grant execute on function public.delete_product(uuid) to authenticated;
+
+drop function if exists public.close_operational_day(timestamptz);
+
+create or replace function public.close_operational_day(
+  p_reference_at timestamptz default now()
+)
+returns table (
+  canceled_orders integer,
+  closed_commandas integer,
+  cutoff_at timestamptz
+)
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_local_reference timestamp;
+  v_local_cutoff timestamp;
+  v_cutoff_at timestamptz;
+  v_canceled_orders integer;
+  v_closed_commandas integer;
+begin
+  v_local_reference := timezone('America/Sao_Paulo', p_reference_at);
+  v_local_cutoff := date_trunc('day', v_local_reference) + interval '6 hours';
+
+  if v_local_reference < v_local_cutoff then
+    v_local_cutoff := v_local_cutoff - interval '1 day';
+  end if;
+
+  v_cutoff_at := v_local_cutoff at time zone 'America/Sao_Paulo';
+
+  update orders
+  set
+    status = 'CANCELED',
+    cancellation_reason = 'Encerrado automaticamente no fechamento diario'
+  where created_at < v_cutoff_at
+    and status in (
+      'PENDING',
+      'ACCEPTED',
+      'IN_PREPARATION',
+      'OUT_FOR_DELIVERY',
+      'READY_FOR_PICKUP'
+    );
+  get diagnostics v_canceled_orders = row_count;
+
+  update comandas
+  set
+    status = 'CLOSED',
+    closed_at = v_cutoff_at - interval '1 millisecond'
+  where opened_at < v_cutoff_at
+    and status = 'OPEN';
+  get diagnostics v_closed_commandas = row_count;
+
+  return query
+  select v_canceled_orders, v_closed_commandas, v_cutoff_at;
+end;
+$$;
+
+revoke all on function public.close_operational_day(timestamptz) from public, anon, authenticated;
+
 drop function if exists public.get_store_settings();
 
 create or replace function public.get_store_settings()

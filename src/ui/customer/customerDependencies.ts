@@ -4,6 +4,7 @@ import { CancelComandaItemUseCase } from '../../application/cancel-comanda-item/
 import { CancelCustomerOrderUseCase } from '../../application/cancel-customer-order/CancelCustomerOrderUseCase';
 import { CloseComandaUseCase } from '../../application/close-comanda/CloseComandaUseCase';
 import { CreateOrderUseCase } from '../../application/create-order/CreateOrderUseCase';
+import { DeleteProductUseCase } from '../../application/delete-product/DeleteProductUseCase';
 import { GetCustomerOrderStatusUseCase } from '../../application/get-customer-order-status/GetCustomerOrderStatusUseCase';
 import { GetDatabaseMonitoringUseCase } from '../../application/get-database-monitoring/GetDatabaseMonitoringUseCase';
 import { GetApplicationLockStatusUseCase } from '../../application/get-application-lock-status/GetApplicationLockStatusUseCase';
@@ -67,6 +68,7 @@ type CustomerDependencies = {
   cancelComandaItemUseCase: CancelComandaItemUseCase;
   closeComandaUseCase: CloseComandaUseCase;
   saveProductUseCase: SaveProductUseCase;
+  deleteProductUseCase: DeleteProductUseCase;
   getApplicationLockStatusUseCase: GetApplicationLockStatusUseCase;
   setApplicationLockStatusUseCase: SetApplicationLockStatusUseCase;
   getStoreSettingsUseCase: GetStoreSettingsUseCase;
@@ -185,6 +187,14 @@ class LocalProductRepository implements ProductRepository {
     }
 
     this.products.splice(productIndex, 1, product);
+  }
+
+  async delete(id: string): Promise<void> {
+    const productIndex = this.products.findIndex((product) => product.id === id);
+
+    if (productIndex >= 0) {
+      this.products.splice(productIndex, 1);
+    }
   }
 }
 
@@ -419,6 +429,7 @@ export function createCustomerDependencies(): CustomerDependencies {
     cancelComandaItemUseCase: new CancelComandaItemUseCase(comandaRepository),
     closeComandaUseCase: new CloseComandaUseCase(comandaRepository),
     saveProductUseCase: new SaveProductUseCase(productRepository),
+    deleteProductUseCase: new DeleteProductUseCase(productRepository),
     getApplicationLockStatusUseCase: new GetApplicationLockStatusUseCase(
       applicationLockRepository,
     ),

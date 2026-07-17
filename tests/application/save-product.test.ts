@@ -13,6 +13,14 @@ class FakeProductRepository implements ProductRepository {
   async save(product: Product): Promise<void> {
     this.products.push(product);
   }
+
+  async delete(id: string): Promise<void> {
+    const productIndex = this.products.findIndex((product) => product.id === id);
+
+    if (productIndex >= 0) {
+      this.products.splice(productIndex, 1);
+    }
+  }
 }
 
 describe('SaveProductUseCase', () => {

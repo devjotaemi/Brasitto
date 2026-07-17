@@ -1,4 +1,4 @@
-import { Edit3, PackagePlus, RefreshCw, Save } from 'lucide-react';
+import { Edit3, PackagePlus, RefreshCw, Save, Trash2 } from 'lucide-react';
 import type { ChangeEvent, FormEvent } from 'react';
 import { useEffect, useState } from 'react';
 import {
@@ -31,7 +31,8 @@ const emptyForm: ProductForm = {
   active: true,
 };
 
-const { listProductsUseCase, saveProductUseCase } = createCustomerDependencies();
+const { deleteProductUseCase, listProductsUseCase, saveProductUseCase } =
+  createCustomerDependencies();
 const PRODUCT_IMAGE_BUCKET = 'product-images';
 const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
 
@@ -140,6 +141,9 @@ export function AdminProductsPanel() {
   const [imageInputKey, setImageInputKey] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [deletingProductId, setDeletingProductId] = useState<string | null>(
+    null,
+  );
   const [errorMessage, setErrorMessage] = useState('');
 
   async function loadProducts() {
@@ -273,6 +277,38 @@ export function AdminProductsPanel() {
       );
     } finally {
       setIsSaving(false);
+    }
+  }
+
+  async function deleteProduct(product: Product) {
+    if (!product.id) {
+      return;
+    }
+
+    if (!window.confirm(`Excluir ${product.name} do cardapio?`)) {
+      return;
+    }
+
+    setDeletingProductId(product.id);
+    setErrorMessage('');
+
+    try {
+      await deleteProductUseCase.execute(product.id);
+
+      if (form.id === product.id) {
+        resetForm();
+      }
+
+      await loadProducts();
+    } catch (error) {
+      setErrorMessage(
+        getUserFacingErrorMessage(
+          error,
+          'Nao foi possivel excluir o produto.',
+        ),
+      );
+    } finally {
+      setDeletingProductId(null);
     }
   }
 
@@ -472,14 +508,25 @@ export function AdminProductsPanel() {
                 </p>
               </div>
 
-              <button
-                className="flex h-10 items-center justify-center gap-2 rounded border border-zinc-300 bg-white px-3 text-sm font-semibold text-zinc-800 transition hover:border-zinc-400"
-                type="button"
-                onClick={() => editProduct(product)}
-              >
-                <Edit3 className="h-4 w-4" />
-                Editar
-              </button>
+              <div className="flex flex-col gap-2">
+                <button
+                  className="flex h-10 items-center justify-center gap-2 rounded border border-zinc-300 bg-white px-3 text-sm font-semibold text-zinc-800 transition hover:border-zinc-400"
+                  type="button"
+                  onClick={() => editProduct(product)}
+                >
+                  <Edit3 className="h-4 w-4" />
+                  Editar
+                </button>
+                <button
+                  className="flex h-10 items-center justify-center gap-2 rounded border border-rose-300 bg-rose-50 px-3 text-sm font-semibold text-rose-800 transition hover:border-rose-400 disabled:cursor-not-allowed disabled:opacity-50"
+                  disabled={deletingProductId === product.id}
+                  type="button"
+                  onClick={() => deleteProduct(product)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                  {deletingProductId === product.id ? 'Excluindo...' : 'Excluir'}
+                </button>
+              </div>
             </article>
           ))}
         </div>

@@ -1202,7 +1202,9 @@ export function AdminApp() {
               <DollarSign className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-sm text-zinc-600">Faturado hoje</p>
+                <p className="text-sm text-zinc-600">
+                  Faturado desde as 6h
+                </p>
               <p className="text-xl font-semibold text-zinc-950">
                   {formatCurrency(todayRevenue.totalRevenue)}
                 </p>

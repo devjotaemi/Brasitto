@@ -8,6 +8,10 @@ type SupabaseQueryResult<T = unknown> = {
 
 type SupabaseClient = {
   from(table: string): unknown;
+  rpc?: (
+    functionName: string,
+    params?: Record<string, unknown>,
+  ) => unknown;
 };
 
 type ProductRow = {
@@ -64,6 +68,20 @@ export class SupabaseProductRepository implements ProductRepository {
       category: product.category,
       image_url: product.imageUrl ?? null,
     });
+
+    if (result.error) {
+      throw result.error;
+    }
+  }
+
+  async delete(id: string): Promise<void> {
+    if (!this.supabase.rpc) {
+      throw new Error('Product deletion requires Supabase RPC');
+    }
+
+    const result = (await this.supabase.rpc('delete_product', {
+      p_product_id: id,
+    })) as SupabaseQueryResult;
 
     if (result.error) {
       throw result.error;

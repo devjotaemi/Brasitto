@@ -9,6 +9,7 @@ type QueryResult = {
 
 class FakeSupabaseClient {
   readonly savedProducts: unknown[] = [];
+  readonly rpcCalls: Array<{ functionName: string; params?: unknown }> = [];
 
   constructor(private readonly productRows: unknown[]) {}
 
@@ -27,6 +28,12 @@ class FakeSupabaseClient {
         return { error: null };
       },
     };
+  }
+
+  async rpc(functionName: string, params?: unknown): Promise<QueryResult> {
+    this.rpcCalls.push({ functionName, params });
+
+    return { error: null };
   }
 }
 
@@ -103,6 +110,22 @@ describe('SupabaseProductRepository', () => {
         active: true,
         category: 'Espetos',
         image_url: 'https://example.com/espeto-carne.jpg',
+      },
+    ]);
+  });
+
+  it('deve excluir produto pela RPC que preserva historico', async () => {
+    const client = new FakeSupabaseClient([]);
+    const repository = new SupabaseProductRepository(client);
+
+    await repository.delete('product-1');
+
+    expect(client.rpcCalls).toEqual([
+      {
+        functionName: 'delete_product',
+        params: {
+          p_product_id: 'product-1',
+        },
       },
     ]);
   });

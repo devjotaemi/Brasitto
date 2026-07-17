@@ -11,6 +11,8 @@ class FakeProductRepository implements ProductRepository {
   }
 
   async save(_product: Product): Promise<void> {}
+
+  async delete(_id: string): Promise<void> {}
 }
 
 describe('ListActiveProductsUseCase', () => {

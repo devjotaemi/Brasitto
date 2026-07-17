@@ -112,6 +112,12 @@ alterar o status para `CANCELED`.
 O aviso sonoro de novo pedido depende de uma interacao inicial do navegador. No
 painel admin, clique em `Ligar som` apos entrar para desbloquear o audio.
 
+O fechamento operacional diario roda as 6h da manha no horario de Sao Paulo
+quando `supabase/daily-rollover.sql` e aplicado no Supabase. Ele cancela pedidos
+ativos antigos com motivo automatico, fecha comandas abertas antigas e mantem
+pedidos/comandas no historico. O faturamento do painel considera o dia
+operacional iniciado as 6h.
+
 Para tornar um usuario administrador no Supabase, edite o usuario em
 `Authentication > Users` e defina o `app_metadata` assim:
 
@@ -147,6 +153,7 @@ atualizado.
 
 - Configurar `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` no provedor de deploy.
 - Aplicar `supabase/schema.sql` e `supabase/policies.sql` no projeto Supabase.
+- Aplicar `supabase/daily-rollover.sql` para agendar o fechamento diario as 6h.
 - Confirmar que existe ao menos um usuario com `app_metadata.role = "admin"` ou
   `app_metadata.role = "donoloja"`.
 - Confirmar que o dono tem `app_metadata.owner = "true"`.

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import dailyRolloverSql from '../../supabase/daily-rollover.sql?raw';
 import hotfixSql from '../../supabase/hotfix-rpc-orders-store-settings.sql?raw';
 import policiesSql from '../../supabase/policies.sql?raw';
 import productImageStorageSql from '../../supabase/product-image-storage.sql?raw';
@@ -90,6 +91,49 @@ describe('Supabase schema SQL', () => {
     );
     expect(normalizedSchema).toContain(
       "raise exception 'Only owner can view database monitoring'",
+    );
+  });
+
+  it('define exclusao de produto preservando historico de itens', () => {
+    const normalizedSchema = normalizeSql(schemaSql);
+
+    expect(normalizedSchema).toContain(
+      normalizeSql(`
+        create or replace function public.delete_product(
+          p_product_id uuid
+        )
+      `),
+    );
+    expect(normalizedSchema).toContain(
+      'update order_items set product_id = null where product_id = p_product_id',
+    );
+    expect(normalizedSchema).toContain(
+      'update comanda_items set product_id = null where product_id = p_product_id',
+    );
+    expect(normalizedSchema).toContain(
+      'delete from products where id = p_product_id',
+    );
+  });
+
+  it('define fechamento operacional diario e agendamento as 6h', () => {
+    const normalizedSchema = normalizeSql(schemaSql);
+    const normalizedDailyRollover = normalizeSql(dailyRolloverSql);
+
+    expect(normalizedSchema).toContain(
+      normalizeSql(`
+        create or replace function public.close_operational_day(
+          p_reference_at timestamptz default now()
+        )
+      `),
+    );
+    expect(normalizedSchema).toContain(
+      "cancellation_reason = 'Encerrado automaticamente no fechamento diario'",
+    );
+    expect(normalizedSchema).toContain(
+      "closed_at = v_cutoff_at - interval '1 millisecond'",
+    );
+    expect(normalizedDailyRollover).toContain(
+      "cron.schedule( 'daily-operational-rollover', '0 9 * * *'",
     );
   });
 });

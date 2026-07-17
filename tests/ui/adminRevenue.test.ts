@@ -40,16 +40,33 @@ const createClosedComanda = () =>
     .close(new Date('2026-07-08T16:00:00.000Z'));
 
 describe('calculateAdminDailyRevenue', () => {
-  it('soma pedidos finalizados e comandas fechadas do dia', () => {
+  it('soma pedidos finalizados e comandas fechadas do dia operacional iniciado as 6h', () => {
     const openComanda = Comanda.create({
       id: 'comanda-2',
       label: 'Mesa 5',
     }).addItem(product, 10, 'item-2');
+    const previousOperationalDayOrder = Order.create({
+      id: 'order-2',
+      customerName: 'Joao Silva',
+      customerPhone: '(11)98888-8888',
+      type: OrderType.PICKUP,
+      items: [
+        {
+          product,
+          quantity: 5,
+          unitPrice: 12,
+          totalPrice: 60,
+        },
+      ],
+    }).updateStatus(
+      OrderStatus.FINISHED,
+      new Date('2026-07-08T08:59:59.000Z'),
+    );
 
     const revenue = calculateAdminDailyRevenue(
-      [createFinishedOrder()],
+      [createFinishedOrder(), previousOperationalDayOrder],
       [createClosedComanda(), openComanda],
-      new Date('2026-07-08T18:00:00.000Z'),
+      new Date('2026-07-08T12:00:00.000Z'),
     );
 
     expect(revenue.finishedOrdersCount).toBe(1);
