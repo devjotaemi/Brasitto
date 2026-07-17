@@ -660,6 +660,7 @@ grant execute on function public.create_order_with_items(
   text,
   text,
   text,
+  text,
   jsonb
 ) to anon, authenticated;
 

@@ -225,6 +225,34 @@ Verificacao executada:
 
 - `npm.cmd run test`: passou com 27 arquivos de teste e 112 testes.
 
+### 2026-07-16 - Hotfix RPC de pedidos e configuracoes da loja
+
+Plano detalhado antes da implementacao:
+
+1. Criar branch dedicada para a correcao.
+2. Corrigir a assinatura do `grant execute` da RPC `create_order_with_items`.
+3. Criar SQL de hotfix para aplicar no Supabase de producao.
+4. Adicionar teste de guarda para impedir regressao na assinatura da RPC.
+5. Rodar testes e build ao final.
+
+Alteracoes realizadas:
+
+- Criada a branch `fix/supabase-rpc-orders-store-settings`.
+- Corrigido `supabase/schema.sql`: o `grant execute` de `create_order_with_items` agora usa a assinatura atual com `p_delivery_region`.
+- Criado `supabase/hotfix-rpc-orders-store-settings.sql` para recriar as RPCs criticas, conceder permissoes corretas e executar `notify pgrst, 'reload schema'`.
+- Criado teste `tests/infrastructure/supabaseSchema.test.ts` para validar que o schema mantem o `grant execute` compativel com a assinatura atual da RPC.
+
+Observacao para producao:
+
+- Rodar `supabase/hotfix-rpc-orders-store-settings.sql` no SQL editor do Supabase.
+- Confirmar que o usuario que fecha a loja tem `app_metadata.owner = true` ou `"true"` no Supabase Auth.
+
+Verificacao executada:
+
+- `npm.cmd run test`: passou com 31 arquivos de teste e 131 testes.
+- `npm.cmd run build`: passou; Vite gerou `dist/`.
+- O build manteve avisos conhecidos do `lucide-react` e chunk acima de 500 kB.
+
 ### 2026-07-08 - Fotos dos produtos
 
 Plano detalhado antes da implementacao:
