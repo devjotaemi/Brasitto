@@ -1,80 +1,164 @@
-# Espetaria
+# 🍢 Espetaria
 
-Aplicativo para um restaurante especializado em espetos por delivery e retirada.
+> Aplicativo para gerenciamento de uma **espetaria** com pedidos por **delivery** e **retirada**, contendo área do cliente e painel administrativo.
 
-## Stack
+---
 
-- React
-- TypeScript
-- Vite
-- Vitest
-- Supabase PostgreSQL
-- Vercel
+## ✨ Tecnologias
 
-## Arquitetura
+| Tecnologia | Descrição |
+|------------|-----------|
+| ⚛️ React | Interface da aplicação |
+| 📘 TypeScript | Tipagem estática |
+| ⚡ Vite | Build e desenvolvimento |
+| 🧪 Vitest | Testes unitários |
+| 🐘 Supabase PostgreSQL | Banco de dados |
+| ▲ Vercel | Deploy |
+
+---
+
+# 📂 Arquitetura
+
+O projeto segue princípios de **Clean Architecture**, separando responsabilidades em camadas.
 
 ```text
-src/domain
-src/application
-src/infrastructure
-src/ui
+src/
+├── domain/
+├── application/
+├── infrastructure/
+└── ui/
 ```
 
-Regras principais:
+### Regras da arquitetura
 
-- Dominio nao importa UI, Supabase ou infraestrutura.
-- Casos de uso dependem de interfaces em `src/application/repositories`.
-- Supabase fica apenas em `src/infrastructure`.
-- Testes unitarios nao conectam no banco real.
+- ✅ O domínio não conhece UI, Supabase ou infraestrutura.
+- ✅ Casos de uso dependem apenas das interfaces em `src/application/repositories`.
+- ✅ Implementações do Supabase ficam exclusivamente em `src/infrastructure`.
+- ✅ Testes unitários nunca utilizam o banco de dados real.
 
-## Comandos
+---
+
+# 🚀 Instalação
 
 ```bash
 npm install
+```
+
+---
+
+# ▶️ Executando o projeto
+
+### Desenvolvimento
+
+```bash
 npm run dev
+```
+
+A aplicação ficará disponível em:
+
+```
+http://127.0.0.1:5173
+```
+
+---
+
+### Testes
+
+```bash
 npm run test
+```
+
+---
+
+### Verificação de tipos
+
+```bash
 npm run typecheck
 ```
 
-`npm run dev` gera o build e serve a pasta `dist` em `http://127.0.0.1:5173`.
+---
 
-## Variaveis de ambiente
+# ⚙️ Variáveis de ambiente
 
-Copie `.env.example` para `.env.local` e preencha:
+Copie o arquivo:
+
+```text
+.env.example
+```
+
+para
+
+```text
+.env.local
+```
+
+e preencha:
 
 ```env
 VITE_SUPABASE_URL=
 VITE_SUPABASE_ANON_KEY=
 ```
 
-Sem essas variaveis, a interface usa produtos e pedidos em memoria apenas em
-desenvolvimento. Em producao, o aplicativo bloqueia a inicializacao ate que
-`VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` estejam configuradas.
+---
 
-Com essas variaveis preenchidas, a interface usa:
+## Sem variáveis
+
+Durante o desenvolvimento, o sistema utiliza dados em memória para:
+
+- Produtos
+- Pedidos
+
+---
+
+## Com variáveis
+
+O sistema passa a utilizar os repositórios reais:
 
 - `SupabaseProductRepository`
 - `SupabaseOrderRepository`
 
-## URLs
+---
 
-- Cliente: `/`
-- Admin: `/admin`
+## Produção
 
-O arquivo `vercel.json` configura rewrite para o React assumir essas rotas em
-producao.
+Em produção, a aplicação **não inicia** caso as variáveis abaixo não estejam configuradas:
 
-## Banco de dados
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_ANON_KEY`
 
-O schema inicial esta em:
+---
+
+# 🌐 Rotas
+
+| Página | URL |
+|---------|-----|
+| 🛒 Cliente | `/` |
+| 👨‍💼 Administração | `/admin` |
+
+O arquivo **vercel.json** já está configurado para realizar o rewrite das rotas.
+
+---
+
+# 🗄️ Banco de Dados
+
+Os scripts do banco estão em:
 
 ```text
 supabase/schema.sql
 ```
 
-Ele define as tabelas `products`, `orders` e `order_items`.
+Define as tabelas:
 
-As policies publicas minimas para o MVP estao em:
+- `products`
+- `orders`
+- `order_items`
+- `app_settings`
+
+---
+
+## Policies
+
+As policies estão em:
 
 ```text
 supabase/policies.sql
@@ -82,37 +166,9 @@ supabase/policies.sql
 
 Elas permitem:
 
-- leitura de produtos ativos
-- criacao publica de pedidos apenas pela RPC `create_order_with_items`
-- leitura e gestao administrativa apenas para usuarios autenticados com `app_metadata.role = "admin"`
-
-O painel administrativo usa Supabase Realtime para atualizar pedidos novos sem
-clique manual. O `supabase/schema.sql` adiciona `public.orders` na publication
-`supabase_realtime` quando ela existir. Se necessario, confirme no painel do
-Supabase que Realtime esta habilitado para a tabela `orders`.
-
-O dono da aplicacao pode ajustar no painel administrativo:
-
-- loja aberta ou fechada para novos pedidos
-- taxa de entrega
-
-Essas configuracoes ficam em `app_settings` e sao usadas pela RPC de criacao de
-pedido para recalcular os valores no banco.
-
-A RPC de criacao de pedido tambem bloqueia novo pedido quando ja existe pedido
-ativo para o mesmo telefone. Pedidos finalizados ou cancelados nao bloqueiam uma
-nova compra.
-
-O cliente pode consultar um pedido pelo numero e telefone e cancelar enquanto o
-pedido ainda estiver `PENDING` ou `ACCEPTED`. Esse cancelamento passa pela RPC
-`cancel_customer_order`, que valida o numero do pedido e o telefone antes de
-alterar o status para `CANCELED`.
-
-O aviso sonoro de novo pedido depende de uma interacao inicial do navegador. No
-painel admin, clique em `Ligar som` apos entrar para desbloquear o audio.
-
-Para tornar um usuario administrador no Supabase, edite o usuario em
-`Authentication > Users` e defina o `app_metadata` assim:
+- ✅ Leitura pública dos produtos ativos.
+- ✅ Criação pública de pedidos via RPC.
+- ✅ Administração apenas para usuários autenticados com:
 
 ```json
 {
@@ -120,7 +176,131 @@ Para tornar um usuario administrador no Supabase, edite o usuario em
 }
 ```
 
-Para o dono da aplicacao, que tambem pode bloquear/liberar a aplicacao, use:
+---
+
+# 📦 RPCs
+
+## Criar Pedido
+
+A RPC:
+
+```text
+create_order_with_items
+```
+
+é responsável por:
+
+- criar o pedido
+- criar os itens
+- recalcular os valores
+- aplicar taxa de entrega
+- verificar se a loja está aberta
+- impedir pedidos duplicados pelo mesmo telefone
+
+Pedidos com status:
+
+- `FINISHED`
+- `CANCELED`
+
+não impedem novas compras.
+
+---
+
+## Cancelar Pedido
+
+A RPC:
+
+```text
+cancel_customer_order
+```
+
+permite que o cliente cancele um pedido informando:
+
+- número do pedido
+- telefone
+
+O cancelamento só é permitido quando o pedido estiver:
+
+- `PENDING`
+- `ACCEPTED`
+
+---
+
+# 🔔 Realtime
+
+O painel administrativo utiliza **Supabase Realtime**.
+
+Novos pedidos aparecem automaticamente sem necessidade de atualizar a página.
+
+Caso necessário, confirme no painel do Supabase que a tabela:
+
+```
+orders
+```
+
+está com o Realtime habilitado.
+
+Também é recomendado habilitar:
+
+```
+app_settings
+```
+
+---
+
+# ⚙️ Configurações da Loja
+
+O proprietário pode alterar pelo painel administrativo:
+
+- 🟢 Loja aberta/fechada
+- 🚚 Taxa de entrega
+
+Essas configurações ficam armazenadas em:
+
+```text
+app_settings
+```
+
+e são utilizadas pela RPC de criação de pedidos.
+
+---
+
+# 🔊 Som de novos pedidos
+
+Por questões de segurança dos navegadores modernos, o áudio só funciona após uma interação do usuário.
+
+Ao entrar no painel administrativo, clique em:
+
+```
+Ligar som
+```
+
+para liberar o áudio das notificações.
+
+---
+
+# 👤 Administradores
+
+No painel do Supabase:
+
+```
+Authentication
+→ Users
+```
+
+defina o `app_metadata` do usuário.
+
+Administrador:
+
+```json
+{
+  "role": "admin"
+}
+```
+
+---
+
+## Proprietário
 
 ```json
 {
@@ -129,35 +309,83 @@ Para o dono da aplicacao, que tambem pode bloquear/liberar a aplicacao, use:
 }
 ```
 
-Depois disso, o usuario deve sair e entrar novamente para receber um JWT
-atualizado.
+Após alterar o `app_metadata`, faça logout e login novamente para atualizar o JWT.
 
-## Checklist de producao
+---
 
-- Configurar `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` no provedor de deploy.
-- Aplicar `supabase/schema.sql` e `supabase/policies.sql` no projeto Supabase.
-- Confirmar que existe ao menos um usuario com `app_metadata.role = "admin"`.
-- Confirmar que o dono tem `app_metadata.owner = "true"`.
-- Confirmar Realtime habilitado para `orders` e `app_settings`.
-- Testar cliente criando pedido, admin atualizando status e cliente consultando
-  pedido pelo numero e telefone.
+# ✅ Checklist de Produção
 
-## Fluxo XP/TDD
+- [ ] Configurar `VITE_SUPABASE_URL`
+- [ ] Configurar `VITE_SUPABASE_ANON_KEY`
+- [ ] Executar `supabase/schema.sql`
+- [ ] Executar `supabase/policies.sql`
+- [ ] Criar um usuário administrador
+- [ ] Configurar o proprietário (`owner`)
+- [ ] Habilitar Realtime para `orders`
+- [ ] Habilitar Realtime para `app_settings`
+- [ ] Testar criação de pedidos
+- [ ] Testar atualização de status pelo admin
+- [ ] Testar consulta de pedidos pelo cliente
+- [ ] Testar cancelamento de pedidos
+
+---
+
+# 🧪 Fluxo de Desenvolvimento (XP + TDD)
 
 ```text
-IDEIA
-->
-REGRAS DO PROJETO
-->
-TESTES
-->
-IMPLEMENTACAO MINIMA
-->
-TESTES PASSAM
-->
-REFATORACAO
-->
-NOVA FEATURE
-->
-DEPLOY
+💡 Ideia
+      │
+      ▼
+📋 Regras do Projeto
+      │
+      ▼
+🧪 Escrever Testes
+      │
+      ▼
+⚙️ Implementação Mínima
+      │
+      ▼
+✅ Testes Passando
+      │
+      ▼
+♻️ Refatoração
+      │
+      ▼
+✨ Nova Feature
+      │
+      ▼
+🚀 Deploy
 ```
+
+---
+
+# 📁 Estrutura do Projeto
+
+```text
+.
+├── src
+│   ├── application
+│   ├── domain
+│   ├── infrastructure
+│   └── ui
+│
+├── supabase
+│   ├── schema.sql
+│   └── policies.sql
+│
+├── .env.example
+├── vercel.json
+└── README.md
+```
+
+---
+
+# ❤️ Desenvolvido com
+
+- React
+- TypeScript
+- Vite
+- Supabase
+- Clean Architecture
+- TDD
+- XP
